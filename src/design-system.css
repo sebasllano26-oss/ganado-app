@@ -1,0 +1,996 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GESTIÓN GANADERA · CAPA DE SISTEMA DE DISEÑO
+   Deriva de desing/stitch_gesti_n_ganadera_saas_redesign/…/DESIGN.md
+
+   Dirección: "Functional Field Utility & Modern Material 3".
+   La pantalla se usa a pleno sol, con guantes y con el teléfono sucio. Por eso:
+   · lienzo de papel cálido en vez de blanco clínico (menos deslumbre),
+   · profundidad por CAPAS TONALES + borde nítido de 1px, no por sombras difusas
+     (una sombra suave desaparece bajo luz directa; un borde no),
+   · verde bosque profundo como único color de mando,
+   · cifras en tabular-nums porque una columna de pesos que baila es ilegible,
+   · radio disciplinado: 16px en tarjetas y 8px en chips.
+
+   Se carga DESPUÉS de legacy.css / tokens.css / style.css y redefine los
+   --color-* que ya consumen las tres. Así una sola capa gobierna todo el
+   producto sin reescribir las vistas heredadas.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─────────────── 1 · TOKENS ─────────────── */
+
+:root {
+  /* Superficies: escala tonal, del lienzo a la hoja elevada */
+  --color-paper: #fcf9f2; /* Nivel 0 · lienzo */
+  --color-surface-low: #f6f3ec; /* Nivel 0.5 · zócalos, cabeceras de tabla */
+  --color-surface-container: #f1eee7; /* Nivel 0.75 · agrupadores */
+  --color-surface: #ffffff; /* Nivel 1 · tarjeta */
+
+  /* Tinta */
+  --color-ink: #1c1d1a; /* carbón casi negro, máximo contraste */
+  --color-ink-2: #414844;
+  /* El terciario se calculó contra el PEOR fondo en que aparece (una tarjeta
+     teñida de ámbar sobre papel), no contra blanco. Con #6b736d rendía 4.11. */
+  --color-ink-3: #5f6660;
+
+  /* Reglas y bordes: teñidos de verde, nunca gris neutro */
+  --color-rule: rgba(27, 67, 50, 0.14);
+  --color-rule-strong: rgba(27, 67, 50, 0.22);
+
+  /* Mando */
+  --color-accent: #1b4332; /* Verde bosque */
+  --color-accent-strong: #012d1d;
+  --color-accent-ink: #1b4332;
+  --color-on-accent: #ffffff;
+  --color-secondary: #52796f; /* Salvia pizarra */
+  --color-mint: #74c69d; /* Menta de pastura */
+  --color-straw: #e9edc9; /* Paja pálida */
+  --color-soft: #e3f0e7; /* fondo tonal del acento */
+
+  /* Semánticos */
+  --color-focus: #1b4332;
+  --color-warning: #d97706; /* Ámbar tierra · sanidad, celo, cuarentena */
+  --color-warning-soft: rgba(217, 119, 6, 0.12);
+  --color-error: #c05621; /* Terracota · retiros, alertas críticas */
+  --color-error-soft: rgba(192, 86, 33, 0.12);
+  --color-ok: #2d6a4f;
+  --color-ok-soft: rgba(116, 198, 157, 0.18);
+  --color-info: #3f665c;
+  --color-info-soft: rgba(63, 102, 92, 0.12);
+
+  /* Un color de RELLENO y un color de TEXTO no pueden ser el mismo valor: el
+     relleno se juzga contra el lienzo (3:1 basta) y el texto contra su propio
+     fondo teñido (4.5:1). El ámbar #d97706 sobre ámbar al 12 % rendía 2.68.
+     Estos tokens son sólo para texto e iconos sobre fondos "soft". */
+  --color-warning-text: #8c4d03;
+  --color-error-text: #9a4419;
+  --color-ok-text: #275f46;
+  --color-info-text: #395c53;
+
+  /* Forma · 16px en lo primario, 8px en chips */
+  --radius-chip: 8px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Elevación · ambiente mínimo, el peso lo lleva el borde */
+  --elev-1: 0 1px 2px rgba(28, 29, 26, 0.04);
+  --elev-2: 0 4px 16px rgba(28, 29, 26, 0.06);
+  --elev-3: 0 8px 24px rgba(28, 29, 26, 0.12);
+  --shadow-soft: var(--elev-2);
+
+  /* Altura mínima de toque en manga (guante, una mano) */
+  --tap: 48px;
+  --tap-field: 52px;
+
+  /* Escala de rendimiento (GDP). Se usa como color de TEXTO sobre tarjetas
+     claras, así que cada valor está oscurecido hasta pasar 4.5:1. Los tonos
+     brillantes de la paleta anterior rendían ~2:1 y eran ilegibles a pleno sol.
+     El color nunca va solo: cada tarjeta lleva además icono y etiqueta. */
+  --gdp-supera: #1b6b45;
+  --gdp-cumple: #2d6a4f;
+  --gdp-casi: #8a5a08;
+  --gdp-bajo: #a4521b;
+  --gdp-critico: #a32e14;
+  --gdp-sin-datos: #6b736d;
+
+  /* Paleta categórica para gráficos: campo, no neón. */
+  --c-green: #2d6a4f;
+  --c-cyan: #3f665c;
+  --c-blue: #35617a;
+  --c-amber: #b06a06;
+  --c-violet: #6b5b8a;
+  --c-rose: #a84a4a;
+}
+
+:root[data-theme="dark"] {
+  /* Nocturno: el mismo bosque, desaturado y aclarado. No es un inverso. */
+  --color-paper: #141815;
+  --color-surface-low: #191e1b;
+  --color-surface-container: #1e2421;
+  --color-surface: #1f2622;
+
+  --color-ink: #eef2ed;
+  --color-ink-2: #b3bdb6;
+  --color-ink-3: #a3aca5;
+
+  --color-rule: rgba(165, 208, 185, 0.16);
+  --color-rule-strong: rgba(165, 208, 185, 0.28);
+
+  --color-accent: #7fc8a0;
+  --color-accent-strong: #a5d0b9;
+  --color-accent-ink: #a5d0b9;
+  --color-on-accent: #04170e;
+  --color-secondary: #8fb3a8;
+  --color-mint: #74c69d;
+  --color-straw: #3a4230;
+  --color-soft: rgba(116, 198, 157, 0.16);
+
+  --color-focus: #8fd6ae;
+  --color-warning: #f0a350;
+  --color-warning-soft: rgba(240, 163, 80, 0.16);
+  --color-error: #e8875a;
+  --color-error-soft: rgba(232, 135, 90, 0.16);
+  --color-ok: #74c69d;
+  --color-ok-soft: rgba(116, 198, 157, 0.16);
+  --color-info: #9fbdb4;
+  --color-info-soft: rgba(159, 189, 180, 0.14);
+
+  /* Los chips se apilan sobre filas ya teñidas, así que el texto se aclara un
+     punto más de lo que pediría el fondo liso. */
+  --color-warning-text: #f7bc7c;
+  --color-error-text: #f4a487;
+  --color-ok-text: #90dab4;
+  --color-info-text: #b5d0c7;
+
+  --elev-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --elev-2: 0 4px 16px rgba(0, 0, 0, 0.36);
+  --elev-3: 0 10px 28px rgba(0, 0, 0, 0.48);
+
+  /* En oscuro la misma escala se aclara: el contraste se mide aparte, no se
+     hereda del modo claro. */
+  --gdp-supera: #7fd9a8;
+  --gdp-cumple: #74c69d;
+  --gdp-casi: #e8b366;
+  --gdp-bajo: #f0a06a;
+  --gdp-critico: #f08a72;
+  --gdp-sin-datos: #9aa39c;
+
+  --c-green: #74c69d;
+  --c-cyan: #7fb8ab;
+  --c-blue: #79aecb;
+  --c-amber: #e0a75c;
+  --c-violet: #a893c9;
+  --c-rose: #d98b8b;
+}
+
+/* Puente a los alias que consumen las vistas heredadas (legacy.css).
+   Sin esto, media aplicación seguiría en la paleta anterior. */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  --paper: var(--color-paper);
+  --paper-2: var(--color-surface-low);
+  --surface: var(--color-surface);
+  --surface-2: var(--color-surface-low);
+  --surface-3: var(--color-surface-container);
+  --ink: var(--color-ink);
+  --ink-2: var(--color-ink-2);
+  --muted: var(--color-ink-3);
+  --border: var(--color-rule);
+  --border-2: var(--color-rule-strong);
+  --accent: var(--color-accent);
+  --accent-deep: var(--color-accent-strong);
+  --accent-press: var(--color-accent-strong);
+  --accent-ink: var(--color-accent-ink);
+  --accent-soft: var(--color-soft);
+  --on-accent: var(--color-on-accent);
+  --ok: var(--color-ok);
+  --ok-soft: var(--color-ok-soft);
+  --warn: var(--color-warning);
+  --warn-soft: var(--color-warning-soft);
+  --danger: var(--color-error);
+  --danger-soft: var(--color-error-soft);
+  --info: var(--color-info);
+  --info-soft: var(--color-info-soft);
+  --r-sm: var(--radius-chip);
+  --r-md: 12px;
+  --r-lg: var(--radius-md);
+  --r-xl: var(--radius-xl);
+  --shadow-sm: var(--elev-1);
+  --shadow-md: var(--elev-2);
+  --shadow-lg: var(--elev-3);
+  --chart-grid: var(--color-rule);
+  --chart-tick: var(--color-ink-3);
+  --chart-label: var(--color-ink-2);
+  --chart-surface: var(--color-surface);
+  --chart-tip-bg: var(--color-surface);
+  --chart-tip-title: var(--color-ink);
+  --chart-tip-body: var(--color-ink-2);
+  --chart-tip-border: var(--color-rule-strong);
+}
+
+/* ─────────────── 2 · BASE ─────────────── */
+
+body {
+  background: var(--color-paper) !important;
+  color: var(--color-ink) !important;
+}
+
+/* Utilidades de color de Tailwind que el render heredado todavía escribe a mano
+   y que se escapaban del sistema: text-gray-300 rendía 1.47:1 en los guiones de
+   las tablas, y text-yellow-600 2.79:1 en las fechas de recordatorio. */
+.workspace :is(.text-gray-300, .text-gray-200, .text-slate-300) {
+  color: var(--color-ink-3) !important;
+}
+.workspace
+  :is(.text-yellow-600, .text-yellow-700, .text-amber-600, .text-amber-700) {
+  color: var(--color-warning-text) !important;
+}
+.workspace :is(.text-orange-600, .text-orange-700) {
+  color: var(--color-error-text) !important;
+}
+.workspace :is(.text-red-500, .text-red-600, .text-red-700) {
+  color: var(--color-error-text) !important;
+}
+.workspace :is(.text-blue-600, .text-blue-700) {
+  color: var(--color-info-text) !important;
+}
+
+/* Las cifras no bailan: ancho de dígito fijo en todo dato numérico. */
+.workspace .metrics strong,
+.workspace .dx-kpi-val,
+.workspace .dx-dnum,
+.workspace .clean-table,
+.workspace .tabla-ganadero,
+.workspace .kpi-card,
+.workspace .ficha-dato,
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ─────────────── 3 · BARRA LATERAL ─────────────── */
+
+.workspace #sidebar {
+  width: 268px !important;
+  background: var(--color-surface-low) !important;
+  border-right: 1px solid var(--color-rule);
+}
+.workspace .ml-64 {
+  margin-left: 268px;
+}
+
+.workspace .sidebar-brand {
+  height: 76px;
+  padding: 0 20px !important;
+  gap: 12px;
+  border-bottom: 1px solid var(--color-rule);
+}
+.workspace .sidebar-brand .brand-mark {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1;
+}
+.workspace .sidebar-brand .bw {
+  font-size: 16px;
+  letter-spacing: -0.03em;
+}
+
+/* Contexto de hacienda: qué finca miro y cuánto ganado tiene.
+   Es lo primero que pregunta quien abre la app con varias fincas. */
+.workspace .sidebar-context {
+  margin: 14px 12px 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+}
+.workspace .sidebar-context-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.workspace .sidebar-context-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+  letter-spacing: -0.015em;
+}
+.workspace .sidebar-context-name i {
+  font-size: 16px;
+  color: var(--color-accent-ink);
+}
+.workspace .sidebar-context-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-rule);
+  font-size: 11.5px;
+  color: var(--color-ink-2);
+}
+.workspace .sidebar-context-count b {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent-ink);
+}
+
+.workspace .nav-section {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  padding: 18px 20px 6px !important;
+  margin-top: 0;
+}
+.workspace .nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  margin: 2px 12px !important;
+  padding: 0 14px !important;
+  border-radius: var(--radius-chip) !important;
+  font-size: 14px !important;
+  font-weight: 500;
+  color: var(--color-ink-2) !important;
+  transition:
+    background 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+.workspace .nav-link i {
+  font-size: 19px;
+  flex: none;
+}
+.workspace .nav-link:hover {
+  background: var(--color-surface-container) !important;
+  color: var(--color-ink) !important;
+}
+.workspace .nav-link.active {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+  font-weight: 600;
+  box-shadow: var(--elev-1);
+}
+:root[data-theme="dark"] .workspace .nav-link.active {
+  box-shadow: none;
+}
+.workspace .nav-link.active i {
+  color: inherit;
+}
+
+.workspace .sidebar-action {
+  min-height: var(--tap);
+  margin: 4px 12px !important;
+  padding: 0 14px !important;
+  border-radius: var(--radius-chip) !important;
+  border-top: 0 !important;
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+.workspace .sidebar-action:hover {
+  background: var(--color-error-soft) !important;
+  color: var(--color-error) !important;
+}
+.workspace .sidebar-foot {
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-rule);
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+
+/* ─────────────── 4 · BARRA SUPERIOR ─────────────── */
+
+.workspace header {
+  height: 72px;
+  padding: 0 28px;
+  gap: 16px;
+  background: color-mix(in srgb, var(--color-paper) 88%, transparent);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid var(--color-rule);
+}
+.workspace #topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.workspace .topbar-icon-btn {
+  width: var(--tap);
+  height: var(--tap);
+  border-radius: var(--radius-chip);
+  color: var(--color-ink-2);
+  border: 1px solid transparent;
+}
+.workspace .topbar-icon-btn:hover {
+  background: var(--color-surface-container);
+  border-color: var(--color-rule);
+  color: var(--color-ink);
+}
+
+/* Cinta de demostración: informativa, no decorativa. */
+.workspace #workspace-banner {
+  padding: 10px 28px;
+  background: var(--color-straw);
+  color: var(--color-accent-strong);
+  border-bottom: 1px solid var(--color-rule);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+:root[data-theme="dark"] .workspace #workspace-banner {
+  color: var(--color-accent-ink);
+}
+
+.workspace #app-main {
+  padding: 28px;
+  max-width: 1560px;
+}
+
+/* ─────────────── 5 · BOTONES ─────────────── */
+
+.workspace .btn-primary,
+.workspace .btn-secondary,
+.workspace .btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-chip);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+.workspace .btn-primary {
+  background: var(--color-accent) !important;
+  color: var(--color-on-accent) !important;
+  box-shadow: var(--elev-1);
+}
+.workspace .btn-primary:hover {
+  background: var(--color-accent-strong) !important;
+}
+.workspace .btn-secondary {
+  background: var(--color-surface) !important;
+  color: var(--color-accent-ink) !important;
+  border-color: var(--color-rule-strong) !important;
+}
+.workspace .btn-secondary:hover {
+  background: var(--color-surface-container) !important;
+}
+.workspace .btn-danger {
+  background: var(--color-error) !important;
+  color: #ffffff !important;
+}
+.workspace .btn-primary:disabled,
+.workspace .btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+/* El foco se ve siempre: sólo se sustituye el anillo del navegador, no se quita. */
+.workspace :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-chip);
+}
+
+/* ─────────────── 6 · TARJETAS DE MÉTRICA ─────────────── */
+
+.workspace .metrics {
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.workspace .metrics > div {
+  position: relative;
+  padding: 18px 18px 16px;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--elev-1);
+  transition:
+    border-color 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out);
+}
+.workspace .metrics > div:hover {
+  border-color: var(--color-rule-strong);
+  box-shadow: var(--elev-2);
+}
+.workspace .metric-top {
+  align-items: flex-start;
+}
+.workspace .metric-top span {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  line-height: 1.35;
+  padding-top: 4px;
+}
+.workspace .metric-top i {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--color-soft);
+  color: var(--color-accent-ink);
+  font-size: 19px;
+}
+.workspace .metrics strong {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  color: var(--color-ink);
+  margin: 14px 0 6px;
+}
+.workspace .metrics strong small {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink-3);
+  margin-left: 2px;
+}
+.workspace .metrics > div > small {
+  font-size: 11.5px;
+  color: var(--color-ink-2);
+  line-height: 1.45;
+}
+
+/* ─────────────── 7 · PANELES ─────────────── */
+
+.workspace .surface {
+  background: var(--color-surface);
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  box-shadow: var(--elev-1);
+}
+.workspace .surface h2 {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.workspace .panel-heading {
+  padding-bottom: 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--color-rule);
+}
+.workspace .panel-heading .text-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent-ink);
+}
+
+.workspace .dashboard-heading h1 {
+  letter-spacing: -0.035em;
+}
+.workspace .view-date {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* Barras de distribución por predio: más cuerpo, legibles de lejos. */
+.workspace .distribution meter,
+.workspace .distribution meter::-webkit-meter-bar {
+  height: 10px;
+  border-radius: var(--radius-chip);
+  background: var(--color-surface-container);
+}
+.workspace .distribution meter::-webkit-meter-optimum-value {
+  background: var(--color-accent);
+  border-radius: var(--radius-chip);
+}
+.workspace .distribution-list > div > div {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-ink-2);
+}
+.workspace .distribution-list > div > div :last-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* ─────────────── 8 · TABLAS ─────────────── */
+
+.workspace .clean-table th,
+.workspace .tabla-ganadero th {
+  background: var(--color-surface-low);
+  color: var(--color-ink-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-rule);
+  white-space: nowrap;
+}
+.workspace .clean-table td,
+.workspace .tabla-ganadero td {
+  padding: 14px;
+  font-size: 13.5px;
+  color: var(--color-ink-2);
+  border-bottom: 1px solid var(--color-rule);
+  vertical-align: middle;
+}
+.workspace .tabla-ganadero tr:hover td,
+.workspace .clean-table tbody tr:hover td {
+  background: var(--color-surface-low);
+}
+.workspace .tabla-ganadero tr.fila-link:hover td {
+  background: var(--color-soft);
+}
+
+/* La caravana es el identificador: se lee como placa, no como texto corrido. */
+.workspace .tabla-ganadero td:first-child,
+.workspace .clean-table td:first-child {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-ink);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+.workspace .clean-table td:first-child i {
+  color: var(--color-accent-ink);
+}
+
+/* Aviso de que la tabla sigue a la derecha: sin esto nadie lo descubre. */
+.workspace .overflow-x-auto,
+.workspace .clean-table-wrap {
+  position: relative;
+  scrollbar-width: thin;
+}
+.workspace .overflow-x-auto::after,
+.workspace .clean-table-wrap::after {
+  content: "";
+  position: sticky;
+  right: 0;
+  top: 0;
+  float: right;
+  width: 40px;
+  height: 100%;
+  margin-left: -40px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    color-mix(in srgb, var(--color-surface) 92%, transparent)
+  );
+}
+
+/* ─────────────── 9 · CHIPS Y ESTADOS ─────────────── */
+
+.workspace .badge,
+.workspace .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: var(--radius-chip);
+  border: 1px solid transparent;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.015em;
+  line-height: 1.45;
+  white-space: nowrap;
+}
+.workspace .badge i {
+  font-size: 13px;
+}
+.workspace .badge-green,
+.workspace .status-pill,
+.workspace .chip-record.cumplido {
+  background: var(--color-ok-soft);
+  color: var(--color-ok-text);
+  border-color: color-mix(in srgb, var(--color-mint) 62%, transparent);
+}
+.workspace .badge-blue,
+.workspace .chip-repro.manual {
+  background: var(--color-info-soft);
+  color: var(--color-info-text);
+  border-color: color-mix(in srgb, var(--color-info) 40%, transparent);
+}
+.workspace .badge-yellow,
+.workspace .badge-orange,
+.workspace .chip-record.vigente,
+.workspace .chip-repro.dudosa {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+  border-color: color-mix(in srgb, var(--color-warning) 52%, transparent);
+}
+.workspace .badge-red,
+.workspace .chip-record.vencido,
+.workspace .chip-repro.vencida {
+  background: var(--color-error-soft);
+  color: var(--color-error-text);
+  border-color: color-mix(in srgb, var(--color-error) 52%, transparent);
+}
+.workspace .badge-gray,
+.workspace .chip-repro.vacia,
+.workspace .chip-repro.sinchequeo {
+  background: var(--color-surface-container);
+  color: var(--color-ink-3);
+  border-color: var(--color-rule);
+}
+
+/* Los avisos coloreados llevan el color en el texto, no sólo en el fondo:
+   el fondo teñido es apoyo, la palabra tiene que leerse igual sin él. */
+.workspace .alerta-warning,
+.workspace .alerta-orange {
+  color: var(--color-ink-2);
+}
+.workspace .alerta-warning b,
+.workspace .alerta-orange b {
+  color: var(--color-warning-text);
+}
+.workspace .alerta-danger b {
+  color: var(--color-error-text);
+}
+
+/* ─────────────── 10 · CAMPOS ─────────────── */
+
+.workspace .form-input,
+.workspace .filter-select,
+.workspace input[type="text"],
+.workspace input[type="number"],
+.workspace input[type="date"],
+.workspace input[type="search"],
+.workspace select,
+.workspace textarea {
+  min-height: var(--tap-field);
+  padding: 12px 14px;
+  border-radius: var(--radius-chip);
+  border: 1.5px solid var(--color-rule-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: 15px;
+  font-family: var(--font-body);
+}
+.workspace .filter-select {
+  /* Hueco reservado para la flecha. Sin el min-width la etiqueta se corta
+     ("Todos estados" quedaba en "Todos estado"), que es el tipo de detalle que
+     hace parecer improvisada una pantalla por lo demás correcta. */
+  padding-right: 38px;
+  min-width: 11.5rem;
+  font-weight: 500;
+  background-position: right 13px center;
+}
+.workspace .form-input:focus,
+.workspace .filter-select:focus,
+.workspace select:focus,
+.workspace textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px rgba(27, 67, 50, 0.15);
+}
+:root[data-theme="dark"]
+  .workspace
+  :is(.form-input, .filter-select, select, textarea):focus {
+  box-shadow: 0 0 0 4px rgba(127, 200, 160, 0.22);
+}
+.workspace .form-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
+}
+.workspace .form-hint {
+  font-size: 12px;
+  color: var(--color-ink-3);
+  margin-top: 5px;
+}
+
+/* ─────────────── 11 · AVISOS, VACÍOS Y CAPAS ─────────────── */
+
+.workspace .alerta-card {
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.workspace .alerta-warning,
+.workspace .alerta-orange {
+  background: var(--color-warning-soft);
+  border: 1px solid color-mix(in srgb, var(--color-warning) 42%, transparent);
+  color: var(--color-ink-2);
+}
+.workspace .alerta-danger {
+  background: var(--color-error-soft);
+  border: 1px solid color-mix(in srgb, var(--color-error) 45%, transparent);
+  color: var(--color-ink-2);
+}
+.workspace .empty-state {
+  padding: 48px 24px;
+  border: 1px dashed var(--color-rule-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-low);
+}
+.workspace .empty-state > i {
+  color: var(--color-ink-3);
+}
+.workspace .toast {
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-3);
+  border: 1px solid var(--color-rule-strong);
+}
+.workspace #modal-box {
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-rule-strong);
+  box-shadow: var(--elev-3);
+}
+.workspace #modal-overlay {
+  /* velo al 40–60%: aísla el primer plano, no compite con él */
+  background: rgba(14, 20, 16, 0.52);
+  backdrop-filter: blur(3px);
+}
+
+/* ─────────────── 12 · KPI HEREDADOS (vistas dx-*) ─────────────── */
+
+.workspace .dx-kpi,
+.workspace .kpi-card,
+.workspace .dx-panel {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-rule);
+  border-radius: var(--radius-md);
+  box-shadow: var(--elev-1);
+}
+.workspace .dx-kpi-val {
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.workspace .dx-kpi-lab {
+  color: var(--color-ink-3);
+}
+.workspace .dx-title,
+.workspace .dx-ptitle {
+  letter-spacing: -0.03em;
+}
+
+/* ─────────────── 13 · MÓVIL / MANGA ─────────────── */
+
+@media (max-width: 767px) {
+  .workspace #app-main {
+    padding: 16px;
+  }
+  .workspace header {
+    height: 64px;
+    padding: 0 12px;
+  }
+  .workspace #workspace-banner {
+    padding: 10px 16px;
+  }
+  /* En manga se opera con una mano: los objetivos crecen, no se aprietan. */
+  .workspace .nav-link,
+  .workspace .sidebar-action {
+    min-height: 52px;
+  }
+  /* Dos por fila: los cuatro indicadores caben en una pantalla sin desplazar.
+     A una sola columna había que bajar tres veces para ver la última cifra,
+     que es justo lo contrario de un resumen. */
+  .workspace .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .workspace .metrics > div {
+    padding: 14px;
+  }
+  .workspace .metric-top {
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .workspace .metric-top span {
+    padding-top: 0;
+  }
+  .workspace .metrics strong {
+    font-size: 27px;
+    margin: 8px 0 4px;
+  }
+  .workspace .metric-top i {
+    display: grid;
+    width: 32px;
+    height: 32px;
+    font-size: 17px;
+  }
+  .workspace .surface {
+    padding: 16px;
+  }
+}
+
+/* ── Área de toque ──
+   Los botones de icono de las tablas miden 20×20 px de pintura. Agrandarlos
+   rompería la altura de la fila, así que se extiende el área sensible con una
+   capa invisible: el dibujo no se mueve y el dedo acierta igual.
+   Se aplica en cualquier puntero grueso, no sólo por ancho de pantalla: una
+   tableta de campo es ancha y se sigue usando con el dedo. */
+@media (pointer: coarse), (max-width: 767px) {
+  .workspace
+    :is(.tabla-ganadero, .clean-table, .alerta-card, #workspace-banner)
+    :is(button, a):not([class*="btn-"]) {
+    position: relative;
+  }
+  .workspace
+    :is(.tabla-ganadero, .clean-table, .alerta-card, #workspace-banner)
+    :is(button, a):not([class*="btn-"])::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+
+  .workspace header > div > button[aria-label="Menú"] {
+    width: var(--tap);
+    height: var(--tap);
+  }
+
+  /* Enlaces de acción que encabezan un panel: se les da cuerpo de botón. */
+  .workspace .panel-heading .text-link,
+  .workspace .distribution .text-link,
+  .workspace .tk-ver {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    margin: 0 -10px;
+    border-radius: var(--radius-chip);
+  }
+}
+
+/* Por debajo de 360 px dos columnas parten las cifras: una sola, y sin icono. */
+@media (max-width: 359px) {
+  .workspace .metrics {
+    grid-template-columns: 1fr;
+  }
+  .workspace .metric-top {
+    flex-direction: row;
+    align-items: center;
+  }
+  .workspace .metric-top i {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace *,
+  .workspace *::before,
+  .workspace *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

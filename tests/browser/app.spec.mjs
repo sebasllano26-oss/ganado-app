@@ -16,7 +16,9 @@ test("commercial page, signup and mobile widths", async ({ page }) => {
     ).toBe(true);
   }
   await page.screenshot({ path: ".local/landing.png", fullPage: true });
-  await page.getByRole("link", { name: "Empieza tu prueba" }).click();
+  await expect(page.locator("#planes")).toHaveCount(0);
+  await expect(page.getByText(/14 días de prueba/i)).toHaveCount(0);
+  await page.getByRole("link", { name: "Crear mi cuenta" }).click();
   await expect(
     page.getByRole("heading", { name: "Crear una cuenta" }),
   ).toBeVisible();
@@ -56,7 +58,9 @@ test("demo routes render, metrics are real and mutations are blocked", async ({
   await expect(page.locator(".metrics")).not.toContainText("—");
   await page.getByRole("button", { name: "Nuevo animal" }).click();
   await expect(
-    page.getByRole("heading", { name: "🐄 Registrar nuevo animal" }),
+    // El emoji que precedía al título es ahora un icono vectorial marcado como
+    // decorativo, así que el nombre accesible es sólo el texto.
+    page.getByRole("heading", { name: "Registrar nuevo animal" }),
   ).toBeVisible();
   await page.locator("#f_propietario_sel").selectOption("__nuevo__");
   await expect(page.locator("#f_propietario_nuevo")).toBeVisible();

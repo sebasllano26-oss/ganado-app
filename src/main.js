@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { hasConfirmedEmail } from "./auth-session.js";
+import { canEnterAfterSignup, hasConfirmedEmail } from "./auth-session.js";
 import "@fontsource/geist/latin-400.css";
 import "@fontsource/geist/latin-500.css";
 import "@fontsource/geist/latin-600.css";
@@ -8,6 +8,7 @@ import "@phosphor-icons/web/regular";
 import "./legacy.css";
 import "../tokens.css";
 import "./style.css";
+import "./design-system.css";
 import shell from "./shell.html?raw";
 
 let Chart, App;
@@ -138,11 +139,11 @@ function authErrorMessage(error) {
 
 function landing() {
   document.body.className = "marketing";
-  root.innerHTML = `<nav class="site-nav">${brand}<div class="site-links"><a href="#funciones">La plataforma</a><a href="#planes">Planes</a></div><a class="button secondary" href="#login">Ingresar ${icon("arrow-up-right")}</a></nav>
- <main class="landing-main"><section class="hero"><div class="hero-copy"><p class="lead-in">Del campo a las decisiones.</p><h1>Tu ganadería,<br><em>en orden.</em></h1><p class="hero-description">Conoce cada animal. Sigue su crecimiento. Organiza el trabajo de tu finca, con toda la información en un solo lugar.</p><div class="hero-actions"><a class="button primary" href="#registro">Empieza tu prueba ${icon("arrow-right")}</a><a class="text-link" href="/?demo=1">Explorar demostración ${icon("arrow-up-right")}</a></div><p class="quiet">14 días de prueba · Sin tarjeta de crédito</p></div>
+  root.innerHTML = `<nav class="site-nav">${brand}<div class="site-links"><a href="#funciones">La plataforma</a></div><a class="button secondary" href="#login">Ingresar ${icon("arrow-up-right")}</a></nav>
+ <main class="landing-main"><section class="hero"><div class="hero-copy"><p class="lead-in">Del campo a las decisiones.</p><h1>Tu ganadería,<br><em>en orden.</em></h1><p class="hero-description">Conoce cada animal. Sigue su crecimiento. Organiza el trabajo de tu finca, con toda la información en un solo lugar.</p><div class="hero-actions"><a class="button primary" href="#registro">Crear mi cuenta ${icon("arrow-right")}</a><a class="text-link" href="/?demo=1">Explorar demostración ${icon("arrow-up-right")}</a></div><p class="quiet">Acceso disponible durante esta etapa · Sin tarjeta de crédito</p></div>
  <div class="hero-art" aria-label="Vista de ejemplo del seguimiento ganadero"><div class="art-heading"><span>El Porvenir</span><span class="sample-tag">Datos de ejemplo</span></div><div class="landscape"><div class="sun"></div><div class="hill hill-back"></div><div class="hill hill-front"></div><div class="field-line"></div><div class="cattle-icon">${icon("cow")}</div></div><div class="art-data"><div><span>El hato, a la vista</span><strong>26 <small>animales activos</small></strong></div><a href="/?demo=1" aria-label="Abrir demostración">${icon("arrow-up-right")}</a></div><div class="art-rule"><span>Pesajes</span><span>Sanidad</span><span>Resultados</span></div></div></section>
  <section class="product-section" id="funciones"><div class="section-heading"><h2>Menos datos sueltos.<br>Más claridad para tu finca.</h2><p>Desde el primer registro hasta la venta, conserva la historia que necesitas para decidir.</p></div><div class="feature-list"><a href="/?demo=1#/animales"><span class="feature-icon">${icon("cow")}</span><div><h3>Cada animal tiene su historia</h3><p>Ingresos, nacimientos, parentesco, fotografías y movimientos del hato.</p></div>${icon("arrow-up-right")}</a><a href="/?demo=1#/planeacion"><span class="feature-icon">${icon("chart-line-up")}</span><div><h3>El crecimiento, con perspectiva</h3><p>Pesajes, ganancia diaria y proyecciones que distinguen estimaciones de datos medidos.</p></div>${icon("arrow-up-right")}</a><a href="/?demo=1#/tareas"><span class="feature-icon">${icon("calendar-check")}</span><div><h3>El trabajo del campo, organizado</h3><p>Tareas por predio y potrero, seguimiento sanitario y registro de lluvias.</p></div>${icon("arrow-up-right")}</a><a href="/?demo=1#/finanzas"><span class="feature-icon">${icon("wallet")}</span><div><h3>Cuentas que puedes consultar</h3><p>Compras, ventas y gastos de operación, junto a sus soportes.</p></div>${icon("arrow-up-right")}</a></div></section>
- <section id="planes" class="plans-section"><div class="section-heading"><h2>Un espacio para<br>cada ganadería.</h2><p>Empieza con 14 días de prueba y hasta 100 animales activos. Los planes comerciales estarán disponibles próximamente.</p></div><div class="plan-table"><div class="plan-row"><div><h3>Esencial</h3><p>Para llevar el control diario de tu finca.</p></div><span>Hasta 250 animales</span><span class="quiet">Precio por anunciar</span><a class="text-link" href="#registro">Empezar prueba ${icon("arrow-right")}</a></div><div class="plan-row"><div><h3>Profesional</h3><p>Más capacidad para una operación en crecimiento.</p></div><span>Hasta 1.000 animales</span><span class="quiet">Precio por anunciar</span><a class="text-link" href="#registro">Empezar prueba ${icon("arrow-right")}</a></div></div><p class="quiet">No se realizan cobros automáticos. Tus datos siguen disponibles para consulta y exportación al finalizar la prueba.</p></section></main>
+ </main>
  <footer class="site-footer">${brand}<span>Hecho para el trabajo del campo.</span><a href="#login">Acceder a mi ganadería ${icon("arrow-right")}</a></footer>`;
 }
 function authScreen(mode = "login", context = {}) {
@@ -172,7 +173,7 @@ function authScreen(mode = "login", context = {}) {
               ? "Confirmando tu cuenta"
               : "Ingresar a Gestión Ganadera";
   const cardCopy = signup
-    ? "Empieza con 14 días para organizar tu hato y tu operación."
+    ? "Crea tu espacio y empieza a organizar tu hato y tu operación."
     : recover
       ? "Te enviaremos un enlace seguro para recuperar tu acceso."
       : reset
@@ -196,7 +197,7 @@ function authScreen(mode = "login", context = {}) {
     ? `<div class="confirmation-state">${icon("envelope-simple-open")}<p>Si no lo ves, revisa correo no deseado o solicita un enlace nuevo.</p><a class="button secondary wide" href="#reenviar-confirmacion">Enviar otro enlace</a></div>`
     : confirming
       ? `<div class="confirmation-state" role="status">${icon("circle-notch")}<p>Este proceso puede tardar unos segundos.</p></div>`
-      : `<form id="auth-form">${signup ? '<div class="auth-steps" aria-label="Proceso de creación"><span class="is-current">1. Cuenta</span><span>2. Confirma</span><span>3. Empieza</span></div><label>Tu nombre<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ej. María Pérez"></label><label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? `<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com" value="${esc(pendingEmail)}"></label>` : ""}${!recover && !resend ? passwordField : ""}<p class="form-notice" id="auth-notice" role="status" aria-live="polite" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : resend ? "Enviar otro enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button>${resend ? '<p class="auth-reassurance">El nuevo enlace llegará al correo de tu cuenta y abrirá esta aplicación.</p>' : ""}</form>`;
+      : `<form id="auth-form">${signup ? '<div class="auth-steps" aria-label="Proceso de creación"><span class="is-current">1. Cuenta</span><span>2. Ganadería</span><span>3. Empieza</span></div><label>Tu nombre<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ej. María Pérez"></label><label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? `<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com" value="${esc(pendingEmail)}"></label>` : ""}${!recover && !resend ? passwordField : ""}<p class="form-notice" id="auth-notice" role="status" aria-live="polite" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : resend ? "Enviar otro enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button>${resend ? '<p class="auth-reassurance">El nuevo enlace llegará al correo de tu cuenta y abrirá esta aplicación.</p>' : ""}</form>`;
   root.innerHTML = `<nav class="site-nav">${brand}<a class="text-link" href="/">Volver al inicio</a></nav><main class="auth-layout"><div class="auth-intro"><div><p class="lead-in">Gestión segura, desde cualquier lugar.</p><h1>${introTitle}</h1><p>Tus animales, pesajes, sanidad y tareas quedan conectados a una cuenta protegida.</p><a class="text-link" href="/?demo=1">Explorar la demostración ${icon("arrow-up-right")}</a></div><div class="auth-field-note"><span>${icon("shield-check")}</span><div><strong>Información protegida</strong><small>Cada ganadería conserva su propio espacio de trabajo.</small></div></div></div><section class="auth-card"><div class="auth-card-mark">${icon(resend ? "envelope" : signup ? "barn" : "cow")}</div><p class="auth-eyebrow">${resend ? "Confirmación de cuenta" : signup ? "Nueva ganadería" : "Acceso a tu espacio"}</p><h2>${cardTitle}</h2><p>${cardCopy}</p>${authForm}${!sb && !confirmation && !confirming ? '<p class="form-notice is-error">El acceso está pendiente de configuración. La demostración sí está disponible.</p>' : ""}<div class="auth-links">${mode === "login" ? '<a href="#recuperar">Olvidé mi contraseña</a><span>¿Primera vez? <a href="#registro">Crear cuenta</a></span>' : confirmation ? '<a href="#login">Ya confirmé mi correo</a>' : confirming ? "" : '<a href="#login">Volver a ingresar</a>'}</div></section></main>`;
   document.querySelectorAll("[data-toggle-password]").forEach((toggle) => {
     toggle.onclick = () => {
@@ -253,7 +254,13 @@ function authScreen(mode = "login", context = {}) {
         });
       if (result.error) throw result.error;
       if (signup) {
-        if (result.data.session) await sb.auth.signOut({ scope: "local" });
+        if (canEnterAfterSignup(result)) {
+          state.session = result.data.session;
+          localStorage.removeItem(pendingEmailKey);
+          history.replaceState(null, "", location.pathname + "#/");
+          await bootApp();
+          return;
+        }
         localStorage.setItem(pendingEmailKey, values.email);
         authScreen("confirmar", { email: values.email });
         return;
@@ -376,10 +383,11 @@ async function bootApp() {
   const name = state.demo
     ? "Ganadería de demostración"
     : state.account.organization.nombre;
+  document.getElementById("sidebar-hacienda").textContent = name;
   const banner = document.getElementById("workspace-banner");
   banner.innerHTML = state.demo
     ? `<span>${icon("flask")} Demostración · Todos los datos son ficticios</span><a href="/#registro">Crear mi cuenta ${icon("arrow-right")}</a>`
-    : `<span>${icon("barn")} ${esc(name)}</span><a href="#/cuenta">${state.account.subscription.estado === "trialing" ? "Prueba hasta " + date(state.account.subscription.trial_ends_at) : "Mi plan"} ${icon("arrow-right")}</a>`;
+    : `<span>${icon("barn")} ${esc(name)}</span><a href="#/cuenta">Mi cuenta ${icon("arrow-right")}</a>`;
   window.GestionGanaderaLogin = {
     salir: async () => {
       if (sb && !state.demo) await sb.auth.signOut();
@@ -498,6 +506,14 @@ function dashboard() {
       const p = a.predio || "Sin predio";
       groups[p] = (groups[p] || 0) + 1;
     });
+    // La carga del hato se muestra en la barra lateral una vez conocida; hasta
+    // entonces el bloque queda oculto en lugar de enseñar un cero que no es real.
+    const carga = document.getElementById("sidebar-carga");
+    if (carga) {
+      document.getElementById("sidebar-carga-num").textContent =
+        `${num(active.length)} ${active.length === 1 ? "cabeza" : "cabezas"}`;
+      carga.hidden = false;
+    }
     const title = state.demo
       ? "Así se ve una finca en orden."
       : state.account.organization.nombre;
@@ -571,24 +587,17 @@ function dashboard() {
 }
 async function accountView() {
   App.closeSidebar();
-  document.getElementById("topbar-title").textContent = "Cuenta y plan";
+  document.getElementById("topbar-title").textContent = "Mi cuenta";
   App.renderMain('<p class="loading-placeholder">Cargando tu cuenta…</p>');
   if (state.demo) {
     App.renderMain(
-      `<section class="surface account-box"><h1>Tu ganadería merece su propio espacio.</h1><p>Esta es una demostración con datos ficticios. Crea una cuenta para guardar tus registros, consultar tu plan y solicitar soporte.</p><a class="button primary" href="/#registro">Crear mi cuenta ${icon("arrow-right")}</a></section>`,
+      `<section class="surface account-box"><h1>Tu ganadería merece su propio espacio.</h1><p>Esta es una demostración con datos ficticios. Crea una cuenta para guardar tus registros y solicitar soporte.</p><a class="button primary" href="/#registro">Crear mi cuenta ${icon("arrow-right")}</a></section>`,
     );
     return;
   }
   try {
     const account = await request("cuenta");
     state.account = account;
-    const sub = account.subscription;
-    const status = {
-      trialing: "En periodo de prueba",
-      active: "Suscripción activa",
-      past_due: "Pago pendiente",
-      canceled: "Suscripción cancelada",
-    }[sub.estado];
     const organizationPicker =
       state.memberships.length > 1
         ? `<section class="surface"><h2>Tus ganaderías</h2><p class="quiet">Elige el espacio que quieres consultar.</p><label>Ganadería activa<select id="organization-picker">${state.memberships
@@ -604,7 +613,7 @@ async function accountView() {
         : "";
     const profileSection = `<section class="surface"><h2>Tu perfil</h2><form id="profile-form"><label>Nombre para mostrar<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" value="${esc(account.profile.nombre_mostrar)}"></label><button class="button primary">Guardar nombre ${icon("arrow-right")}</button><p id="profile-notice" class="form-notice" role="status" hidden></p></form></section>`;
     App.renderMain(
-      `<div class="dashboard-heading"><div><p class="view-date">Mi cuenta</p><h1>${esc(account.organization.nombre)}</h1><p>${esc(account.profile.nombre_mostrar)} · ${esc(account.profile.correo)}</p></div><button id="export-data" class="button secondary">${icon("download-simple")} Exportar datos</button></div>${organizationPicker}<div class="account-grid"><section class="surface"><h2>Tu plan</h2><span class="status-pill">${status}</span><h3 class="plan-name">${esc(account.plans.find((p) => p.id === sub.plan_id)?.nombre)}</h3><p>${sub.estado === "trialing" ? "Prueba hasta " + date(sub.trial_ends_at) : "Vigencia hasta " + date(sub.current_period_end)}</p><p class="quiet">Al finalizar la vigencia puedes consultar y exportar tus datos. Los nuevos registros requieren un plan activo.</p><form id="plan-form"><label>Solicitar un plan<select name="plan"><option value="esencial">Esencial · hasta 250 animales</option><option value="profesional">Profesional · hasta 1.000 animales</option></select></label><button class="button primary" ${account.role !== "owner" ? "disabled" : ""}>Solicitar información ${icon("arrow-right")}</button><p class="quiet">Los precios y el cobro se anunciarán próximamente. Esta solicitud no genera cargos.</p><p id="plan-notice" class="form-notice" role="status" ${account.request ? "" : "hidden"}>${account.request ? "Solicitud registrada: " + esc(account.request.plan_id) : ""}</p></form></section>${profileSection}<section class="surface"><h2>Cuéntanos qué necesitas</h2><p class="quiet">Tu solicitud quedará registrada para que el equipo de soporte pueda revisarla.</p><form id="support-form"><label>Asunto<input name="subject" required minlength="3" maxlength="150" placeholder="¿Con qué necesitas ayuda?"></label><label>Mensaje<textarea name="message" required minlength="10" maxlength="5000" rows="4" placeholder="Describe lo que ocurrió o lo que necesitas."></textarea></label><button class="button primary">Registrar solicitud ${icon("arrow-right")}</button><p id="support-notice" class="form-notice" role="status" hidden></p></form></section>${teamSection}</div><section class="surface"><h2>Solicitudes de soporte</h2>${account.tickets.length ? account.tickets.map((t) => `<div class="ticket-row"><div><strong>${esc(t.asunto)}</strong><p class="quiet">${date(t.created_at)}</p></div><span class="status-pill">${esc(t.estado.replace("_", " "))}</span></div>`).join("") : '<p class="quiet">Todavía no has registrado solicitudes.</p>'}</section>`,
+      `<div class="dashboard-heading"><div><p class="view-date">Mi cuenta</p><h1>${esc(account.organization.nombre)}</h1><p>${esc(account.profile.nombre_mostrar)} · ${esc(account.profile.correo)}</p></div><button id="export-data" class="button secondary">${icon("download-simple")} Exportar datos</button></div>${organizationPicker}<div class="account-grid">${profileSection}<section class="surface"><h2>Cuéntanos qué necesitas</h2><p class="quiet">Tu solicitud quedará registrada para que el equipo de soporte pueda revisarla.</p><form id="support-form"><label>Asunto<input name="subject" required minlength="3" maxlength="150" placeholder="¿Con qué necesitas ayuda?"></label><label>Mensaje<textarea name="message" required minlength="10" maxlength="5000" rows="4" placeholder="Describe lo que ocurrió o lo que necesitas."></textarea></label><button class="button primary">Registrar solicitud ${icon("arrow-right")}</button><p id="support-notice" class="form-notice" role="status" hidden></p></form></section>${teamSection}</div><section class="surface"><h2>Solicitudes de soporte</h2>${account.tickets.length ? account.tickets.map((t) => `<div class="ticket-row"><div><strong>${esc(t.asunto)}</strong><p class="quiet">${date(t.created_at)}</p></div><span class="status-pill">${esc(t.estado.replace("_", " "))}</span></div>`).join("") : '<p class="quiet">Todavía no has registrado solicitudes.</p>'}</section>`,
     );
     const picker = document.getElementById("organization-picker");
     if (picker)
@@ -612,11 +621,6 @@ async function accountView() {
         localStorage.setItem("gestion-ganadera-org", picker.value);
         location.reload();
       };
-    document.getElementById("plan-form").onsubmit = (e) =>
-      submitForm(e, "plan-notice", async (f) => {
-        await request("solicitarPlan", [f.get("plan")]);
-        return "Solicitud registrada. No se ha realizado ningún cobro.";
-      });
     document.getElementById("support-form").onsubmit = (e) =>
       submitForm(e, "support-notice", async (f) => {
         await request("crearTicket", [f.get("subject"), f.get("message")]);

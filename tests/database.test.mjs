@@ -9,7 +9,7 @@ const userA = "00000000-0000-4000-8000-000000000001",
   userC = "00000000-0000-4000-8000-000000000003",
   userD = "00000000-0000-4000-8000-000000000004",
   userE = "00000000-0000-4000-8000-000000000005";
-test("database: migration, tenant isolation, subscription enforcement, transactions and RLS", async () => {
+test("database: migration, tenant isolation, free access, transactions and RLS", async () => {
   const db = new PGlite();
   try {
     await db.exec(
@@ -166,14 +166,10 @@ test("database: migration, tenant isolation, subscription enforcement, transacti
     await db.exec(
       `reset role;update public.suscripciones set trial_ends_at=now()-interval '1 day' where organizacion_id='${orgA}';set role authenticated;`,
     );
-    await assert.rejects(
-      () =>
-        db.query("select public.ganax_commit($1,1,$2,'expired')", [
-          orgA,
-          JSON.stringify(changes),
-        ]),
-      /no permite cambios/,
-    );
+    await db.query("select public.ganax_commit($1,1,$2,'free access')", [
+      orgA,
+      JSON.stringify(changes),
+    ]);
     assert.ok(
       (await db.query("select public.ganax_snapshot($1) snapshot", [orgA]))
         .rows[0].snapshot.animales.length,

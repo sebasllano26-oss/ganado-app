@@ -1,12 +1,12 @@
 # Gestión Ganadera
 
-Plataforma ganadera multiusuario para ofrecer por suscripción. Es independiente de la versión de Google Apps Script y no requiere Google Sheets.
+Plataforma ganadera multiusuario conectada a Supabase. Es independiente de la versión de Google Apps Script y no requiere Google Sheets.
 
 ## Incluye
 
 - Portada comercial y demostración pública de consulta con 28 animales ficticios.
-- Registro, confirmación por correo, inicio de sesión y recuperación con Supabase Auth.
-- Perfil, ganadería, membresía de propietario y prueba de 14 días creados por la base de datos después de confirmar el correo.
+- Registro inmediato, inicio de sesión y recuperación con Supabase Auth.
+- Perfil, ganadería y membresía de propietario creados por la base de datos al registrar la cuenta.
 - Roles `owner`, `editor` y `viewer`, con cambio entre las ganaderías autorizadas.
 - Inventario, pesajes, reproducción, sanidad, ventas, gastos, tareas, predios y lluvias.
 - Archivos en un bucket privado y enlaces firmados por una hora.
@@ -41,7 +41,7 @@ El flujo de alta es el siguiente:
 
 1. El navegador envía a Supabase Auth el correo, la contraseña, el nombre de la persona y el nombre solicitado para la ganadería.
 2. Supabase crea el usuario pendiente, pero todavía no crea datos de la ganadería ni permite una sesión válida.
-3. Al confirmar el correo, el trigger `provision_account_after_confirmation` crea `perfiles`, `organizaciones`, la membresía `owner` y la suscripción `trialing` en una sola transacción.
+3. Al registrar la cuenta, Supabase la confirma automáticamente y el trigger `provision_account_after_confirmation` crea `perfiles`, `organizaciones` y la membresía `owner` en una sola transacción.
 4. Si falla ese bloque, el usuario de Auth se conserva y el error queda en `ganax_private.errores_alta`.
 5. En el siguiente ingreso, `crear_ganaderia` repara de forma idempotente las filas faltantes y devuelve la organización existente ante llamadas repetidas.
 6. La aplicación vuelve a comprobar con Auth que el usuario existe y que su correo está confirmado antes de abrir el espacio de trabajo.
@@ -57,13 +57,13 @@ Los clientes tienen lectura con RLS. Las escrituras pasan por funciones `securit
 3. Añade `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
 4. Despliega. `api/rpc.mjs` se publica como función de Vercel.
 5. Después de conocer el dominio final, configura en Supabase la URL del sitio y las redirecciones para ese dominio y `http://127.0.0.1:5173/**`.
-6. Configura SMTP propio y prueba registro, confirmación, recuperación e ingreso antes de abrir las ventas.
+6. Configura SMTP propio antes de habilitar recuperación por correo o confirmación de cuentas.
 
 No uses `vite preview` como servidor de producción: solo entrega archivos estáticos y no incluye la API.
 
-## Suscripciones y soporte
+## Acceso y soporte
 
-Los precios y la pasarela se definirán después. Esencial admite 250 animales y Profesional 1.000. Ningún botón cobra ni convierte una solicitud en una suscripción pagada.
+Durante esta etapa no hay planes, cobros ni límites por suscripción. Los propietarios y editores pueden registrar información; los usuarios de consulta conservan acceso de solo lectura.
 
 Consulta [OPERACION.md](docs/OPERACION.md) para administrar planes, equipos, errores de alta y respaldos.
 
@@ -76,7 +76,7 @@ npx playwright install chromium
 npx playwright test
 ```
 
-Las pruebas cubren el alta desde `auth.users`, la recuperación concurrente, el aislamiento de perfiles, RLS, suscripciones, transacciones, conflictos y navegación de la demostración.
+Las pruebas cubren el alta desde `auth.users`, la recuperación concurrente, el aislamiento de perfiles, RLS, permisos, transacciones, conflictos y navegación de la demostración.
 
 ## Arquitectura y límites
 

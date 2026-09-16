@@ -12,6 +12,20 @@
     <span class="bw">Gestión Ganadera</span>
   </div>
 
+  <!-- Contexto: qué hacienda estoy mirando y cuánto ganado activo tiene.
+       Con varias fincas, es la primera pregunta al abrir la aplicación. -->
+  <div class="sidebar-context">
+    <span class="sidebar-context-label">Hacienda activa</span>
+    <span class="sidebar-context-name">
+      <i class="ph ph-barn" aria-hidden="true"></i>
+      <span id="sidebar-hacienda">—</span>
+    </span>
+    <span class="sidebar-context-count" id="sidebar-carga" hidden>
+      <span>Hato activo</span>
+      <b id="sidebar-carga-num">—</b>
+    </span>
+  </div>
+
   <nav class="flex-1 py-2 overflow-y-auto">
     <div class="nav-section">Principal</div>
     <a href="#/" class="nav-link" data-view="dashboard"
@@ -46,7 +60,7 @@
 
     <div class="nav-section">Mi cuenta</div>
     <a href="#/cuenta" class="nav-link" data-view="cuenta"
-      ><i class="ph ph-user-circle"></i> Cuenta y plan</a
+      ><i class="ph ph-user-circle"></i> Mi cuenta</a
     >
   </nav>
 

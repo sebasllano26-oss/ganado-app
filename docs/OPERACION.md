@@ -2,12 +2,11 @@
 
 ## Altas de cuenta
 
-Al crear una cuenta, el trigger `provision_account_after_signup` intenta crear en una transacción:
+Al crear una cuenta, Supabase la confirma automáticamente y el trigger `provision_account_after_confirmation` intenta crear en una transacción:
 
 - el perfil;
 - la organización;
-- la membresía `owner`;
-- la suscripción de prueba.
+- la membresía `owner`.
 
 El trigger nunca cancela el alta de Auth. Si el bloque falla, revierte esas cuatro filas, conserva el usuario y registra el detalle para el administrador:
 
@@ -27,44 +26,29 @@ Los nombres rechazan HTML y tienen límites de longitud. La aplicación muestra 
 
 ## Equipo
 
-El propietario agrega a una persona desde **Cuenta y plan → Equipo**. La persona debe haber creado primero una cuenta con el mismo correo. La función `invitar_miembro` busca esa cuenta y agrega o actualiza su rol mediante una escritura controlada. No insertes filas de `miembros` manualmente y no concedas permisos directos de escritura.
+El propietario agrega a una persona desde **Mi cuenta → Equipo**. La persona debe haber creado primero una cuenta con el mismo correo. La función `invitar_miembro` busca esa cuenta y agrega o actualiza su rol mediante una escritura controlada. No insertes filas de `miembros` manualmente y no concedas permisos directos de escritura.
 
-Cuando una persona pertenece a varias ganaderías, puede elegir el espacio activo en **Cuenta y plan → Tus ganaderías**. `viewer` consulta y exporta; `editor` registra cambios durante la vigencia del plan; `owner` también administra el equipo y solicita cambios de plan.
+Cuando una persona pertenece a varias ganaderías, puede elegir el espacio activo en **Mi cuenta → Tus ganaderías**. `viewer` consulta y exporta; `editor` registra cambios; `owner` también administra el equipo.
 
-## Planes
+## Acceso actual
 
-Solo el administrador del proyecto activa una suscripción. Revisa la fila antes de modificarla:
+Las suscripciones están inactivas durante la validación del producto. `owner` y `editor` pueden registrar cambios sin fecha de vencimiento ni límite comercial; `viewer` conserva acceso de consulta. Las tablas históricas de planes permanecen disponibles para una futura integración, pero no intervienen en el acceso actual.
 
-```sql
-select o.id, o.nombre, s.*
-from public.organizaciones o
-join public.suscripciones s on s.organizacion_id=o.id;
-
-update public.suscripciones
-set plan_id='esencial', estado='active',
-    current_period_end=now()+interval '1 month', updated_at=now()
-where organizacion_id='UUID-DE-LA-ORGANIZACION';
-```
-
-Cuando se integre una pasarela, verifica las firmas de los webhooks y procesa eventos de forma idempotente. Las claves de pago deben existir solo en el servidor.
-
-## Configuración de Auth pendiente de aprobación
+## Configuración de Auth
 
 Para igualar la validación del cliente, la configuración propuesta es:
 
 - longitud mínima de contraseña: `10`;
 - requisitos adicionales de caracteres: ninguno;
+- confirmación de correo: desactivada para permitir el alta inmediata;
 - protección contra contraseñas filtradas: activada si el proyecto usa plan Pro o superior;
 - URL local permitida: `http://127.0.0.1:5173/**`;
-- URL del sitio y redirección de producción: el dominio HTTPS exacto de Vercel cuando exista.
-
-No cambies estos valores hasta aprobarlos y contar con el dominio final.
+- URL del sitio y redirección de producción: el dominio HTTPS de Vercel.
 
 ## Solicitudes, datos y archivos
 
-- `solicitudes_plan` contiene la última solicitud comercial por organización.
 - `soporte` guarda los tickets; el administrador puede cambiar su estado a `en_revision` o `resuelto`.
-- El usuario puede descargar un respaldo JSON desde Cuenta y plan, aunque venza la suscripción.
+- El usuario puede descargar un respaldo JSON desde Mi cuenta.
 - El bucket interno `ganax-files` es privado y conserva su nombre por compatibilidad. Cada ruta empieza con el UUID de la organización.
 - Los enlaces firmados vencen después de una hora.
 - `auditoria` registra usuario, operación y tablas modificadas.
@@ -73,9 +57,8 @@ No cambies estos valores hasta aprobarlos y contar con el dominio final.
 
 - **La demo funciona pero no puedo entrar:** revisa las cuatro variables y las migraciones aplicadas.
 - **La cuenta abre sin ganadería:** revisa `ganax_private.errores_alta`; el siguiente ingreso intentará repararla.
-- **No llega la confirmación:** revisa SMTP, registros de Auth y URLs permitidas.
+- **No puedo recuperar la contraseña:** revisa SMTP, registros de Auth y URLs permitidas.
 - **No puedo agregar a una persona:** confirma que ya creó su cuenta con el mismo correo.
-- **Se alcanzó el límite:** revisa el plan y `planes.max_animales`.
 - **Los datos cambiaron mientras trabajabas:** actualiza la vista antes de repetir la edición.
 
 ## Estructura

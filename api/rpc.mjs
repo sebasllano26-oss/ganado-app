@@ -89,22 +89,11 @@ export default async function handler(req, res) {
       const results = await Promise.all([
         sb.from("organizaciones").select("id,nombre").eq("id", org).single(),
         sb
-          .from("suscripciones")
-          .select("*")
-          .eq("organizacion_id", org)
-          .single(),
-        sb.from("planes").select("*"),
-        sb
           .from("soporte")
           .select("*")
           .eq("organizacion_id", org)
           .order("created_at", { ascending: false })
           .limit(20),
-        sb
-          .from("solicitudes_plan")
-          .select("*")
-          .eq("organizacion_id", org)
-          .maybeSingle(),
         sb
           .from("perfiles")
           .select(
@@ -117,11 +106,8 @@ export default async function handler(req, res) {
       return res.json({
         data: {
           organization: results[0].data,
-          subscription: results[1].data,
-          plans: results[2].data,
-          tickets: results[3].data,
-          request: results[4].data,
-          profile: results[5].data,
+          tickets: results[1].data,
+          profile: results[2].data,
           role: member.rol,
           email: user.email,
         },
@@ -149,17 +135,12 @@ export default async function handler(req, res) {
       if (error) throw error;
       return res.json({ data: { ok: true } });
     }
-    if (fn === "solicitarPlan" || fn === "crearTicket") {
-      const { data, error } = await sb.rpc(
-        fn === "solicitarPlan" ? "solicitar_plan" : "crear_ticket",
-        fn === "solicitarPlan"
-          ? { org, plan: args[0] }
-          : {
-              org,
-              asunto: validateText(args[0], 150),
-              mensaje: validateText(args[1]),
-            },
-      );
+    if (fn === "crearTicket") {
+      const { data, error } = await sb.rpc("crear_ticket", {
+        org,
+        asunto: validateText(args[0], 150),
+        mensaje: validateText(args[1]),
+      });
       if (error) throw error;
       return res.json({ data: { ok: true, id: data } });
     }

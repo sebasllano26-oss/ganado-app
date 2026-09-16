@@ -106,7 +106,7 @@ var App = {
       // Mostrar el error en pantalla completa para que sea visible
       document.getElementById('app-main').innerHTML =
         '<div class="flex flex-col items-center justify-center py-20 px-6 text-center">' +
-          '<div class="text-5xl mb-4">🚨</div>' +
+          '<div class="text-5xl mb-4"><i class="ph ph-siren" aria-hidden="true"></i></div>' +
           '<h2 class="text-xl font-bold text-red-600 mb-2">' + titulo + '</h2>' +
           '<pre class="bg-red-50 border border-red-200 rounded-lg px-6 py-4 text-sm text-red-700 text-left max-w-2xl w-full whitespace-pre-wrap mb-4">' + detalle + '</pre>' +
           '<p class="text-gray-500 text-sm mb-6">Copia este error y compártelo para que lo puedan resolver.</p>' +
@@ -184,13 +184,18 @@ var App = {
   // Antes habia tres escalas distintas y el mismo animal cambiaba de color
   // segun la pestana desde la que se mirara.
   GDP_ORDEN: ['SUPERA','CUMPLE','CASI','BAJO','CRITICO','SIN_DATOS'],
+  // `hex` es el color de RELLENO en graficos (barras, dona): va sobre el lienzo
+  // y solo necesita 3:1. `varTexto` es el color de TEXTO sobre tarjeta clara y
+  // necesita 4.5:1, por eso apunta a un token que cambia con el tema. Antes
+  // ambos usos compartian el hex brillante y el texto rendia ~2:1: ilegible a
+  // pleno sol, que es justo donde se usa esta pantalla.
   GDP_INFO: {
-    SUPERA:    { label:'Supera',    badge:'badge-green',  hex:'#3fd08a', icon:'🏆' },
-    CUMPLE:    { label:'Cumple',    badge:'badge-blue',   hex:'#31c7d6', icon:'✅' },
-    CASI:      { label:'Casi',      badge:'badge-yellow', hex:'#f0b44a', icon:'📊' },
-    BAJO:      { label:'Bajo',      badge:'badge-orange', hex:'#f0843c', icon:'⚠️' },
-    CRITICO:   { label:'Crítico',   badge:'badge-red',    hex:'#f07a94', icon:'🚨' },
-    SIN_DATOS: { label:'Sin datos', badge:'badge-gray',   hex:'#8f8578', icon:'❓' }
+    SUPERA:    { label:'Supera',    badge:'badge-green',  hex:'#2d6a4f', varTexto:'var(--gdp-supera)',     icon:'<i class="ph ph-trophy" aria-hidden="true"></i>' },
+    CUMPLE:    { label:'Cumple',    badge:'badge-blue',   hex:'#3f665c', varTexto:'var(--gdp-cumple)',     icon:'<i class="ph ph-check-circle" aria-hidden="true"></i>' },
+    CASI:      { label:'Casi',      badge:'badge-yellow', hex:'#b06a06', varTexto:'var(--gdp-casi)',       icon:'<i class="ph ph-chart-bar" aria-hidden="true"></i>' },
+    BAJO:      { label:'Bajo',      badge:'badge-orange', hex:'#c05621', varTexto:'var(--gdp-bajo)',       icon:'<i class="ph ph-warning" aria-hidden="true"></i>' },
+    CRITICO:   { label:'Crítico',   badge:'badge-red',    hex:'#a32e14', varTexto:'var(--gdp-critico)',    icon:'<i class="ph ph-siren" aria-hidden="true"></i>' },
+    SIN_DATOS: { label:'Sin datos', badge:'badge-gray',   hex:'#8f8578', varTexto:'var(--gdp-sin-datos)',  icon:'<i class="ph ph-question" aria-hidden="true"></i>' }
   },
   // Misma logica que clasificarRendimiento() del backend, con los mismos cortes.
   clasificarGdp: function(gdp) {
@@ -200,15 +205,17 @@ var App = {
     return g >= e.SUPERA ? 'SUPERA' : g >= e.CUMPLE ? 'CUMPLE'
          : g >= e.CASI   ? 'CASI'   : g >= e.BAJO   ? 'BAJO' : 'CRITICO';
   },
-  // OJO: hexGdp espera el GDP en kg/dia. Si ya tenes la clave del nivel
-  // ('SUPERA', 'BAJO'...) usa hexNivel: pasarle la clave a hexGdp devuelve el gris
-  // de SIN_DATOS sin avisar, porque parseFloat('SUPERA') es NaN.
-  hexGdp: function(gdp) {
-    var c = App.clasificarGdp(gdp);
-    return c ? App.GDP_INFO[c].hex : App.GDP_INFO.SIN_DATOS.hex;
-  },
+  // OJO: textoGdp espera el GDP en kg/dia. Si ya tenes la clave del nivel
+  // ('SUPERA', 'BAJO'...) usa hexNivel: pasarle la clave a una funcion que
+  // clasifica devuelve el gris de SIN_DATOS sin avisar, porque
+  // parseFloat('SUPERA') es NaN.
   hexNivel: function(key) {
     return (App.GDP_INFO[key] || App.GDP_INFO.SIN_DATOS).hex;
+  },
+  // Para pintar TEXTO. Devuelve un var() que sigue al tema, no un hex fijo.
+  textoGdp: function(gdp) {
+    var c = App.clasificarGdp(gdp);
+    return (c ? App.GDP_INFO[c] : App.GDP_INFO.SIN_DATOS).varTexto;
   },
   // El rango se deriva del objetivo vigente; nunca se escribe a mano.
   descNivel: function(key) {
@@ -256,10 +263,10 @@ var App = {
   _badgeReproductivo: function(estRepr) {
     if (!estRepr) return '';
     var mapa = {
-      'Preñada':    { tk: '--ok',      icon: '🤰' },
+      'Preñada':    { tk: '--ok',      icon: '<i class="ph ph-baby" aria-hidden="true"></i>' },
       'No preñada': { tk: '--muted',   icon: '○'  },
-      'Dudosa':     { tk: '--warn',    icon: '❓' },
-      'En celo':    { tk: '--c-amber', icon: '🔥' }
+      'Dudosa':     { tk: '--warn',    icon: '<i class="ph ph-question" aria-hidden="true"></i>' },
+      'En celo':    { tk: '--c-amber', icon: '<i class="ph ph-fire" aria-hidden="true"></i>' }
     };
     var b = mapa[estRepr];
     if (!b) return '<span class="text-xs" style="color:var(--muted)">' + estRepr + '</span>';
@@ -284,7 +291,7 @@ var App = {
   },
   _badgeDescarte: function(estado) {
     if (!estado || estado === 'Pendiente') return '';
-    if (estado === 'Marcado para descarte') return '<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700">✂️ Descarte</span>';
+    if (estado === 'Marcado para descarte') return '<span class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700"><i class="ph ph-scissors" aria-hidden="true"></i> Descarte</span>';
     return '<span class="text-xs text-gray-400">' + estado + '</span>';
   },
 
@@ -499,15 +506,15 @@ var App = {
   // `proxima_fecha` es un RECORDATORIO de seguimiento. Diferenciarlos evita
   // confundir "lo que ya se hizo" con "lo que queda por hacer".
   _SAN_ICONOS: {
-    'AFTOSA':'💉','CARBÓN SINTOMÁTICO':'💉','CARBÓN BACTERIDIANO':'💉','VACUNA':'💉',
-    'DESPARASITANTE':'🪱','PURGA ORAL':'🪱','PURGA SUBCUTÁNEA':'🪱',
-    'VITAMINA':'💊','TRATAMIENTO':'🩹','REVISIÓN':'🔍','PALPACIÓN VETERINARIA':'🩺',
-    'BAÑAR':'🚿'
+    'AFTOSA':'<i class="ph ph-syringe" aria-hidden="true"></i>','CARBÓN SINTOMÁTICO':'<i class="ph ph-syringe" aria-hidden="true"></i>','CARBÓN BACTERIDIANO':'<i class="ph ph-syringe" aria-hidden="true"></i>','VACUNA':'<i class="ph ph-syringe" aria-hidden="true"></i>',
+    'DESPARASITANTE':'<i class="ph ph-bug" aria-hidden="true"></i>','PURGA ORAL':'<i class="ph ph-bug" aria-hidden="true"></i>','PURGA SUBCUTÁNEA':'<i class="ph ph-bug" aria-hidden="true"></i>',
+    'VITAMINA':'<i class="ph ph-pill" aria-hidden="true"></i>','TRATAMIENTO':'<i class="ph ph-bandaids" aria-hidden="true"></i>','REVISIÓN':'<i class="ph ph-magnifying-glass" aria-hidden="true"></i>','PALPACIÓN VETERINARIA':'<i class="ph ph-stethoscope" aria-hidden="true"></i>',
+    'BAÑAR':'<i class="ph ph-shower" aria-hidden="true"></i>'
   },
   // Tipos que cuentan como "el mismo protocolo" para dar por cumplido un
   // recordatorio (refleja las reglas de seguimiento del backend en sanidad.gs).
   _SAN_PROX: { 'CARBÓN SINTOMÁTICO':'CARBÓN BACTERIDIANO','CARBÓN BACTERIDIANO':'CARBÓN SINTOMÁTICO' },
-  _sanIcono: function(tipo) { return App._SAN_ICONOS[tipo] || '📋'; },
+  _sanIcono: function(tipo) { return App._SAN_ICONOS[tipo] || '<i class="ph ph-clipboard-text" aria-hidden="true"></i>'; },
 
   // Une valores no vacíos y sin repetir (para agrupar medicamento/dosis/observación
   // de varios procedimientos del mismo día en una sola celda).
@@ -527,19 +534,19 @@ var App = {
   // Catálogo de labores. `dias` = intervalo sugerido para repetirla (0 = sin
   // sugerencia). Espeja ACTIVIDADES_TAREA de tareas.gs.
   ACTIVIDADES: [
-    { tipo:'Guadañar',      dias:45,  icono:'🌾' },
-    { tipo:'Fumigar',       dias:60,  icono:'💨' },
-    { tipo:'Machetear',     dias:60,  icono:'🔪' },
-    { tipo:'Abonar',        dias:120, icono:'🌱' },
-    { tipo:'Riego',         dias:15,  icono:'💧' },
-    { tipo:'Cercas',        dias:180, icono:'🚧' },
-    { tipo:'Vacunar',       dias:0,   icono:'💉' },
-    { tipo:'Mantenimiento', dias:0,   icono:'🔧' },
-    { tipo:'Otra',          dias:0,   icono:'📋' }
+    { tipo:'Guadañar',      dias:45,  icono:'<i class="ph ph-grains" aria-hidden="true"></i>' },
+    { tipo:'Fumigar',       dias:60,  icono:'<i class="ph ph-wind" aria-hidden="true"></i>' },
+    { tipo:'Machetear',     dias:60,  icono:'<i class="ph ph-knife" aria-hidden="true"></i>' },
+    { tipo:'Abonar',        dias:120, icono:'<i class="ph ph-plant" aria-hidden="true"></i>' },
+    { tipo:'Riego',         dias:15,  icono:'<i class="ph ph-drop" aria-hidden="true"></i>' },
+    { tipo:'Cercas',        dias:180, icono:'<i class="ph ph-shield" aria-hidden="true"></i>' },
+    { tipo:'Vacunar',       dias:0,   icono:'<i class="ph ph-syringe" aria-hidden="true"></i>' },
+    { tipo:'Mantenimiento', dias:0,   icono:'<i class="ph ph-wrench" aria-hidden="true"></i>' },
+    { tipo:'Otra',          dias:0,   icono:'<i class="ph ph-clipboard-text" aria-hidden="true"></i>' }
   ],
   _actIcono: function(a) {
     for (var i = 0; i < App.ACTIVIDADES.length; i++) if (App.ACTIVIDADES[i].tipo === a) return App.ACTIVIDADES[i].icono;
-    return '📋';
+    return '<i class="ph ph-clipboard-text" aria-hidden="true"></i>';
   },
   _actDias: function(a) {
     for (var i = 0; i < App.ACTIVIDADES.length; i++) if (App.ACTIVIDADES[i].tipo === a) return App.ACTIVIDADES[i].dias || 0;
@@ -552,9 +559,9 @@ var App = {
   TAREA_INFO: {
     PROGRAMADA:   { label:'Programada',   icono:'●', tk:'--muted'  },
     EN_CURSO:     { label:'En curso',     icono:'◐', tk:'--info'   },
-    REALIZADA:    { label:'Realizada',    icono:'✔', tk:'--ok'     },
-    PENDIENTE:    { label:'Pendiente',    icono:'⚠', tk:'--warn'   },
-    NO_EJECUTADA: { label:'No ejecutada', icono:'✖', tk:'--danger' },
+    REALIZADA:    { label:'Realizada',    icono:'<i class="ph ph-check" aria-hidden="true"></i>', tk:'--ok'     },
+    PENDIENTE:    { label:'Pendiente',    icono:'<i class="ph ph-warning" aria-hidden="true"></i>', tk:'--warn'   },
+    NO_EJECUTADA: { label:'No ejecutada', icono:'<i class="ph ph-x" aria-hidden="true"></i>', tk:'--danger' },
     CANCELADA:    { label:'Cancelada',    icono:'⊘', tk:'--muted'  }
   },
   // La etiqueta que se muestra: "pendiente" gana sobre "programada" porque es la
@@ -750,10 +757,10 @@ var App = {
     if (!r.estado) return '<span class="text-gray-300">—</span>';
     var f = App.fmtFecha(evento.proxima_fecha);
     if (r.estado === 'cumplido')
-      return '<span class="chip-record cumplido" title="Recordatorio ya atendido por un evento posterior">✔ Cumplido · ' + f + '</span>';
+      return '<span class="chip-record cumplido" title="Recordatorio ya atendido por un evento posterior"><i class="ph ph-check" aria-hidden="true"></i> Cumplido · ' + f + '</span>';
     if (r.estado === 'vencido')
-      return '<span class="chip-record vencido" title="Seguimiento programado que ya venció y sigue pendiente">⏰ Vencido · ' + f + ' <span class="op">(hace ' + Math.abs(r.dias) + ' d)</span></span>';
-    return '<span class="chip-record vigente" title="Seguimiento programado, aún no realizado">🔔 ' + f + ' <span class="op">(' + (r.dias === 0 ? 'hoy' : 'en ' + r.dias + ' d') + ')</span></span>';
+      return '<span class="chip-record vencido" title="Seguimiento programado que ya venció y sigue pendiente"><i class="ph ph-clock" aria-hidden="true"></i> Vencido · ' + f + ' <span class="op">(hace ' + Math.abs(r.dias) + ' d)</span></span>';
+    return '<span class="chip-record vigente" title="Seguimiento programado, aún no realizado"><i class="ph ph-bell" aria-hidden="true"></i> ' + f + ' <span class="op">(' + (r.dias === 0 ? 'hoy' : 'en ' + r.dias + ' d') + ')</span></span>';
   },
 
   renderMain: function(html) {
@@ -826,22 +833,22 @@ var App = {
     if (!btn) return;
     var n = 0;
     barra.querySelectorAll('.filtros-panel select').forEach(function(s) { if (s.value) n++; });
-    btn.textContent = n ? '⚙ Filtros (' + n + ')' : '⚙ Filtros';
+    btn.innerHTML = '<i class="ph ph-funnel" aria-hidden="true"></i> ' + (n ? 'Filtros (' + n + ')' : 'Filtros');
     btn.classList.toggle('con-filtros', n > 0);
   },
   // Grupos de sub-pestañas. La navegación lateral quedó con menos entradas:
   // lo comercial vive dentro de "Para venta" y el registro dentro de "Animales".
   _SUBTABS: {
-    salida:   [{ hash:'#/salida',   label:'🎯 Para venta' },
-               { hash:'#/ventas',   label:'🧾 Ventas' },
-               { hash:'#/finanzas', label:'🔒 Finanzas' },
-               { hash:'#/facturas', label:'🧾 Facturas' }],
-    animales: [{ hash:'#/animales', label:'🐄 Listado' },
-               { accion:'App.abrirModalRegistro()', label:'📋 Registro' }],
-    tareas:   [{ hash:'#/tareas', label:'📋 Tablero' },
-               { hash:'#/calendario', label:'🗓️ Calendario' },
-               { hash:'#/predios', label:'🗺️ Predios y lotes' },
-               { hash:'#/lluvias', label:'🌧️ Lluvias' }]
+    salida:   [{ hash:'#/salida',   label:'<i class="ph ph-target" aria-hidden="true"></i> Para venta' },
+               { hash:'#/ventas',   label:'<i class="ph ph-receipt" aria-hidden="true"></i> Ventas' },
+               { hash:'#/finanzas', label:'<i class="ph ph-lock" aria-hidden="true"></i> Finanzas' },
+               { hash:'#/facturas', label:'<i class="ph ph-receipt" aria-hidden="true"></i> Facturas' }],
+    animales: [{ hash:'#/animales', label:'<i class="ph ph-cow" aria-hidden="true"></i> Listado' },
+               { accion:'App.abrirModalRegistro()', label:'<i class="ph ph-clipboard-text" aria-hidden="true"></i> Registro' }],
+    tareas:   [{ hash:'#/tareas', label:'<i class="ph ph-clipboard-text" aria-hidden="true"></i> Tablero' },
+               { hash:'#/calendario', label:'<i class="ph ph-calendar" aria-hidden="true"></i> Calendario' },
+               { hash:'#/predios', label:'<i class="ph ph-map-trifold" aria-hidden="true"></i> Predios y lotes' },
+               { hash:'#/lluvias', label:'<i class="ph ph-cloud-rain" aria-hidden="true"></i> Lluvias' }]
   },
 
   // `activa` es el hash de la sub-pestaña en curso. Las entradas con `accion`
@@ -953,9 +960,9 @@ var App = {
     }
     if (sexo !== 'HEMBRA') return { key: '', chip: '<span class="text-gray-300">—</span>' };
     switch (String(a.estado_reproductivo || '').trim()) {
-      case 'Preñada':    return { key:'PRENADA', chip:'<span class="chip-repro prenada">🤰 Preñada</span>' };
-      case 'Dudosa':     return { key:'DUDOSA',  chip:'<span class="chip-repro dudosa">❓ Dudosa</span>' };
-      case 'En celo':    return { key:'CELO',    chip:'<span class="chip-repro manual">🔥 En celo</span>' };
+      case 'Preñada':    return { key:'PRENADA', chip:'<span class="chip-repro prenada"><i class="ph ph-baby" aria-hidden="true"></i> Preñada</span>' };
+      case 'Dudosa':     return { key:'DUDOSA',  chip:'<span class="chip-repro dudosa"><i class="ph ph-question" aria-hidden="true"></i> Dudosa</span>' };
+      case 'En celo':    return { key:'CELO',    chip:'<span class="chip-repro manual"><i class="ph ph-fire" aria-hidden="true"></i> En celo</span>' };
       case 'No preñada': return { key:'VACIA',   chip:'<span class="chip-repro vacia">○ Vacía</span>' };
       default:           return { key:'SINCHEQUEO', chip:'<span class="chip-repro sinchequeo">Sin chequeo</span>' };
     }
@@ -1103,7 +1110,7 @@ var App = {
             '</div>' +
             '<div class="flex-1 min-w-0">' +
               '<div class="font-semibold text-gray-800">' + a.codigo +
-                (a.estado_reproductivo === 'Preñada' ? ' <span title="Preñada">🤰</span>' : '') + '</div>' +
+                (a.estado_reproductivo === 'Preñada' ? ' <span title="Preñada"><i class="ph ph-baby" aria-hidden="true"></i></span>' : '') + '</div>' +
               '<div class="text-gray-400 text-xs truncate">' + (a.tipo || '—') + ' · ' + (a.predio || '—') + '</div>' +
             '</div>' +
             '<div class="text-right text-xs text-gray-400 shrink-0">' +
@@ -1756,9 +1763,9 @@ var App = {
           // Filtro reproductivo — solo afecta a hembras (los machos se ocultan al usarlo).
           '<select id="ani-repro" onchange="App._filtrarListaAnimales()" class="form-input w-44 text-sm py-1.5">' +
             '<option value="">Todo reproductivo</option>' +
-            '<option value="PRENADA">🤰 Preñadas</option>' +
-            '<option value="DUDOSA">❓ Dudosas</option>' +
-            '<option value="CELO">🔥 En celo</option>' +
+            '<option value="PRENADA">Preñadas</option>' +
+            '<option value="DUDOSA">Dudosas</option>' +
+            '<option value="CELO">En celo</option>' +
             '<option value="VACIA">○ Vacías (no preñadas)</option>' +
             '<option value="SINCHEQUEO">Sin chequeo</option>' +
             '<option value="HEMBRAS">Todas las hembras</option>' +
@@ -1790,8 +1797,8 @@ var App = {
           '<td>' + rf.chip + '</td>' +
           '<td><span class="badge ' + eb + '">' + a.estado + '</span></td>' +
           '<td class="flex gap-3 items-center">' +
-            '<button onclick="event.stopPropagation();App.abrirModalAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="text-gray-400 hover:text-green-700 text-lg" title="Editar">✏️</button>' +
-            '<button onclick="event.stopPropagation();App.eliminarAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="text-gray-300 hover:text-red-500 text-lg" title="Eliminar">🗑</button>' +
+            '<button onclick="event.stopPropagation();App.abrirModalAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="text-gray-400 hover:text-green-700 text-lg" title="Editar"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button>' +
+            '<button onclick="event.stopPropagation();App.eliminarAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="text-gray-300 hover:text-red-500 text-lg" title="Eliminar"><i class="ph ph-trash" aria-hidden="true"></i></button>' +
           '</td>' +
         '</tr>';
       });
@@ -1895,7 +1902,7 @@ var App = {
 
     if (lista.length === 0) {
       body.innerHTML = '<div class="bg-white rounded-xl border border-gray-200 p-10 text-center">' +
-        '<div class="text-4xl mb-3">👶</div>' +
+        '<div class="text-4xl mb-3"><i class="ph ph-baby-carriage" aria-hidden="true"></i></div>' +
         '<h3 class="font-semibold text-gray-700 mb-1">Aún no hay nacimientos registrados</h3>' +
         '<p class="text-sm text-gray-400 max-w-md mx-auto">Registrá un animal con origen <b>Nacimiento</b> y su madre, o desde la edición de un animal marcá <b>“Nació en la finca”</b>. Aparecerán aquí para su análisis.</p>' +
       '</div>';
@@ -1993,7 +2000,7 @@ var App = {
       '<div style="height:240px;position:relative">' + (total ? '<canvas id="nac-chart-sexo"></canvas>' : '<div class="flex items-center justify-center h-full text-sm text-gray-400">Sin datos.</div>') + '</div>' +
     '</div>';
     h += '<div class="bg-white rounded-xl border border-gray-200 p-5">' +
-      '<h3 class="font-semibold text-gray-700 mb-1">🏆 Vacas más productivas</h3>' +
+      '<h3 class="font-semibold text-gray-700 mb-1"><i class="ph ph-trophy" aria-hidden="true"></i> Vacas más productivas</h3>' +
       '<p class="text-xs text-gray-400 mb-3">Madres con más crías registradas</p>';
     if (top.length === 0) {
       h += '<p class="text-sm text-gray-400 py-3">Aún sin crías vinculadas a una madre.</p>';
@@ -2140,21 +2147,21 @@ var App = {
             App._badgeDescarte(a.estado_descarte) +
             // Insignia de preñez siempre visible en la cabecera — evita ventas accidentales
             (gestProy
-              ? '<span class="chip-repro ' + (gestProy.vencida ? 'vencida' : 'prenada') + '">🤰 PREÑADA ~' + gestProy.hoy + ' m</span>'
-              : (sexoA === 'HEMBRA' && a.estado_reproductivo === 'Preñada' ? '<span class="chip-repro prenada">🤰 PREÑADA</span>' : '')) +
+              ? '<span class="chip-repro ' + (gestProy.vencida ? 'vencida' : 'prenada') + '"><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA ~' + gestProy.hoy + ' m</span>'
+              : (sexoA === 'HEMBRA' && a.estado_reproductivo === 'Preñada' ? '<span class="chip-repro prenada"><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA</span>' : '')) +
           '</div>' +
           '<div class="text-sm text-gray-500">' + (a.tipo || '') + ' · ' + (a.predio || '') + (a.propietario ? ' · ' + a.propietario : '') + '</div>' +
           (a.indicaciones ? '<div class="text-xs text-gray-400 mt-1">' + a.indicaciones + '</div>' : '') +
         '</div></div>' +
         '<div class="flex flex-wrap gap-2">' +
           (a.estado === 'ACTIVO'
-            ? '<button onclick="App.abrirModalRegistro(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-primary px-4 py-2 text-sm">📋 Registro</button>' +
-              '<button onclick="App.abrirModalVenta(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm">💰 Registrar venta</button>' +
-              '<button onclick="App.abrirModalDescarte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm">✂️ Descarte</button>' +
-              '<button onclick="App.abrirModalMuerte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm" title="Registra el fallecimiento conservando todo el historial del animal">✝ Registrar muerte</button>'
+            ? '<button onclick="App.abrirModalRegistro(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-primary px-4 py-2 text-sm"><i class="ph ph-clipboard-text" aria-hidden="true"></i> Registro</button>' +
+              '<button onclick="App.abrirModalVenta(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm"><i class="ph ph-money" aria-hidden="true"></i> Registrar venta</button>' +
+              '<button onclick="App.abrirModalDescarte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm"><i class="ph ph-scissors" aria-hidden="true"></i> Descarte</button>' +
+              '<button onclick="App.abrirModalMuerte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-sm" title="Registra el fallecimiento conservando todo el historial del animal"><i class="ph ph-cross" aria-hidden="true"></i> Registrar muerte</button>'
             : '') +
-          '<button onclick="App.abrirModalAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="btn-secondary text-sm">✏️ Editar</button>' +
-          '<button onclick="App.eliminarAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="btn-danger text-sm" title="Borra el animal y todo su historial. Si murió, usa «Registrar muerte» para conservar la trazabilidad.">🗑 Eliminar</button>' +
+          '<button onclick="App.abrirModalAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="btn-secondary text-sm"><i class="ph ph-pencil-simple" aria-hidden="true"></i> Editar</button>' +
+          '<button onclick="App.eliminarAnimal(\'' + String(a.codigo).replace(/'/g,"'") + '\')" class="btn-danger text-sm" title="Borra el animal y todo su historial. Si murió, usa «Registrar muerte» para conservar la trazabilidad."><i class="ph ph-trash" aria-hidden="true"></i> Eliminar</button>' +
         '</div>' +
       '</div>' +
       '<div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-5 gap-4">' +
@@ -2163,13 +2170,13 @@ var App = {
         // Gestación: si está preñada se proyecta a hoy (palpada X m el [fecha] · hoy ≈ Y m);
         // si no hay palpación con fecha, cae al valor estático del campo meses.
         (gestProy
-          ? App._dato(gestProy.vencida ? '⚠️ Gestación (vencida)' : 'Gestación',
+          ? App._dato(gestProy.vencida ? '<i class="ph ph-warning" aria-hidden="true"></i> Gestación (vencida)' : 'Gestación',
               gestProy.reportada + ' m' + (gestProy.fecha ? ' palpada ' + App.fmtFecha(gestProy.fecha) : '') + ' · hoy ≈ ' + gestProy.hoy + ' m')
           : ((sexoA === 'HEMBRA' && a.meses && String(a.meses) !== '0')
               ? App._dato('Meses de gestación', a.meses + ' meses') : '')) +
         App._dato(esNacimiento ? 'Peso al nacer' : 'Peso inicial', App.fmt(a.peso_inicial, 1) + ' kg') +
         App._dato('Sexo', sexoLbl) +
-        App._dato('Origen', esNacimiento ? '👶 Nacimiento' : '🛒 Compra') +
+        App._dato('Origen', esNacimiento ? '<i class="ph ph-baby-carriage" aria-hidden="true"></i> Nacimiento' : '<i class="ph ph-shopping-cart" aria-hidden="true"></i> Compra') +
         (esNacimiento
           ? (data.madre ? App._dato('Madre', '<a href="#/animal/' + encodeURIComponent(data.madre.codigo) + '" class="text-green-700 font-medium" onclick="event.stopPropagation()">' + data.madre.codigo + '</a>') : App._dato('Madre', '—'))
           : App._dato('Precio compra', App.fmtCOP(a.precio_compra))) +
@@ -2198,7 +2205,7 @@ var App = {
             '<div class="muerte-t">Animal fallecido</div>' +
             '<div class="muerte-s">Su historial se conserva completo. Este registro alimenta el análisis de mortalidad.</div>' +
           '</div>' +
-          '<button onclick="App.abrirModalMuerte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-3 py-1.5">✏️ Corregir</button>' +
+          '<button onclick="App.abrirModalMuerte(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-3 py-1.5"><i class="ph ph-pencil-simple" aria-hidden="true"></i> Corregir</button>' +
         '</div>' +
         '<div class="muerte-datos">' +
           '<div><span class="l">Fecha de muerte</span><span class="v">' + (a.fecha_muerte ? App.fmtFecha(a.fecha_muerte) : '—') + '</span></div>' +
@@ -2220,7 +2227,7 @@ var App = {
     if (a.estado_descarte === 'Marcado para descarte') {
       html += '<div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center justify-between gap-4">' +
         '<div class="flex items-center gap-3">' +
-          '<span class="text-xl">✂️</span>' +
+          '<span class="text-xl"><i class="ph ph-scissors" aria-hidden="true"></i></span>' +
           '<div>' +
             '<div class="font-semibold text-red-700 text-sm">Marcado para descarte</div>' +
             (a.motivo_descarte ? '<div class="text-xs text-red-600 mt-0.5">Motivo: ' + a.motivo_descarte + '</div>' : '') +
@@ -2236,7 +2243,7 @@ var App = {
     if (rep && rep.esReproductora) {
       html += '<div class="bg-white rounded-xl border border-gray-200 p-5">' +
         '<div class="flex items-center justify-between mb-3 flex-wrap gap-2">' +
-          '<h3 class="font-semibold text-gray-700">🍼 Historial reproductivo</h3>' +
+          '<h3 class="font-semibold text-gray-700"><i class="ph ph-baby-carriage" aria-hidden="true"></i> Historial reproductivo</h3>' +
           '<div class="flex items-center gap-2 flex-wrap">' +
             '<span class="badge badge-green">' + rep.numeroPartos + ' parto' + (rep.numeroPartos !== 1 ? 's' : '') + '</span>' +
             (rep.numeroPartos > 0 ? '<span class="badge badge-blue">' + rep.categoria + '</span>' : '<span class="badge badge-gray">Sin partos</span>') +
@@ -2263,7 +2270,7 @@ var App = {
       html += '</div>';
     }
 
-    // ⚖️ El peso: lo medido y lo estimado para hoy. Va antes que nada más
+    // <i class="ph ph-scales" aria-hidden="true"></i> El peso: lo medido y lo estimado para hoy. Va antes que nada más
     // porque es a lo que se entra a esta pantalla.
     html += App._cardPeso(data);
 
@@ -2273,11 +2280,11 @@ var App = {
     var htmlKpis = '';
     if (res) {
       htmlKpis = '<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-4">' +
-        App._kpiCard('📊', 'GDP promedio',   App.fmt(res.gdpPromedio, 3) + ' kg/d', '') +
-        App._kpiCard('🏆', 'GDP máximo',     App.fmt(res.gdpMaximo, 3) + ' kg/d', '') +
-        App._kpiCard('📅+30', 'Proy. 30d',   App.fmt(res.proy30, 1) + ' kg', '') +
-        App._kpiCard('📅+60', 'Proy. 60d',   App.fmt(res.proy60, 1) + ' kg', '') +
-        App._kpiCard('📅+90', 'Proy. 90d',   App.fmt(res.proy90, 1) + ' kg', '') +
+        App._kpiCard('<i class="ph ph-chart-bar" aria-hidden="true"></i>', 'GDP promedio',   App.fmt(res.gdpPromedio, 3) + ' kg/d', '') +
+        App._kpiCard('<i class="ph ph-trophy" aria-hidden="true"></i>', 'GDP máximo',     App.fmt(res.gdpMaximo, 3) + ' kg/d', '') +
+        App._kpiCard('<i class="ph ph-calendar" aria-hidden="true"></i>+30', 'Proy. 30d',   App.fmt(res.proy30, 1) + ' kg', '') +
+        App._kpiCard('<i class="ph ph-calendar" aria-hidden="true"></i>+60', 'Proy. 60d',   App.fmt(res.proy60, 1) + ' kg', '') +
+        App._kpiCard('<i class="ph ph-calendar" aria-hidden="true"></i>+90', 'Proy. 90d',   App.fmt(res.proy90, 1) + ' kg', '') +
       '</div>';
     }
 
@@ -2311,7 +2318,7 @@ var App = {
             (s.ganancia >= 0 ? '+' : '') + App.fmt(s.ganancia, 2) + '</td>' +
           '<td>' + s.diasDesdeAnterior + '</td>' +
           '<td class="font-semibold">' + App.fmt(s.gdpPer, 3) +
-            (s.alerta ? ' <span title="' + App._esc(App._alertaMedicionTxt(s.alerta)) + '" style="cursor:help" class="' + (s.alerta === 'GDP_IMPOSIBLE' || s.alerta === 'FECHA_INVALIDA' ? 'text-red-500' : 'text-yellow-600') + '">⚠</span>' : '') + '</td>' +
+            (s.alerta ? ' <span title="' + App._esc(App._alertaMedicionTxt(s.alerta)) + '" style="cursor:help" class="' + (s.alerta === 'GDP_IMPOSIBLE' || s.alerta === 'FECHA_INVALIDA' ? 'text-red-500' : 'text-yellow-600') + '"><i class="ph ph-warning" aria-hidden="true"></i></span>' : '') + '</td>' +
           '<td>' + App.fmt(s.gdpAcum, 3) + '</td>' +
           '<td>' + App.fmt(s.proy30, 1) + '</td>' +
           '<td>' + App.badge(s.clasificacion) + '</td>' +
@@ -2358,7 +2365,7 @@ var App = {
       var hoyS = new Date(); hoyS.setHours(0, 0, 0, 0);
       html += '<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">' +
         '<div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">' +
-          '<h3 class="font-semibold text-gray-700">🩺 Historial sanitario</h3>' +
+          '<h3 class="font-semibold text-gray-700"><i class="ph ph-stethoscope" aria-hidden="true"></i> Historial sanitario</h3>' +
           '<span class="text-xs text-gray-400">Cada fila es un evento <b class="text-gray-600">realizado</b>; el <b class="text-gray-600">recordatorio</b> es el seguimiento que dejó programado.</span>' +
         '</div>' +
         '<table class="tabla-ganadero"><thead><tr><th>Fecha</th><th>Evento realizado</th><th>Medicamento</th><th>Dosis</th><th>Recordatorio</th><th>Observación</th></tr></thead><tbody>';
@@ -2518,9 +2525,9 @@ var App = {
     // ── Los dos números ──
     var html = '<div class="bg-white rounded-xl border border-gray-200 p-5" id="card-peso">' +
       '<div class="flex items-center justify-between mb-4 flex-wrap gap-3">' +
-        '<h3 class="font-semibold text-gray-700">⚖️ Peso</h3>' +
+        '<h3 class="font-semibold text-gray-700"><i class="ph ph-scales" aria-hidden="true"></i> Peso</h3>' +
         '<button onclick="App.abrirModalMedicion(\'' + App._esc(a.codigo) + '\')" ' +
-          'class="btn-secondary text-sm">⚖ Pesarlo</button>' +
+          'class="btn-secondary text-sm"><i class="ph ph-scales" aria-hidden="true"></i> Pesarlo</button>' +
       '</div>' +
       '<div class="peso-hoy">' +
         '<div class="ph-fig">' +
@@ -2545,7 +2552,7 @@ var App = {
     html += '<div class="ph-nota">' + App._pesoHoyExplica(ph, a) + '</div>';
 
     if (!ph.confiable && hayEstimacion) {
-      html += '<div class="ph-aviso"><span>⚠</span><div>Hace <b>' + dias + ' días</b> del último ' +
+      html += '<div class="ph-aviso"><span><i class="ph ph-warning" aria-hidden="true"></i></span><div>Hace <b>' + dias + ' días</b> del último ' +
         'pesaje: la estimación es poco confiable. Conviene pasarlo por la báscula.</div></div>';
     }
     return html + '</div>';
@@ -2757,13 +2764,13 @@ var App = {
             '<i class="ph ph-hand-coins"></i> Registrar venta</button>' +
         '</div>' +
         '<div class="grid grid-cols-3 gap-4">' +
-          App._kpiCard('🐄', 'Animales vendidos', ventas.length, '') +
-          App._kpiCard('💵', 'Ingresos brutos',   App.fmtCOP(totalPrec), 'valor total de ventas') +
-          App._kpiCard('📈', 'Utilidad bruta',    App.fmtCOP(totalUtil), 'venta menos costo de compra') +
+          App._kpiCard('<i class="ph ph-cow" aria-hidden="true"></i>', 'Animales vendidos', ventas.length, '') +
+          App._kpiCard('<i class="ph ph-currency-circle-dollar" aria-hidden="true"></i>', 'Ingresos brutos',   App.fmtCOP(totalPrec), 'valor total de ventas') +
+          App._kpiCard('<i class="ph ph-chart-line-up" aria-hidden="true"></i>', 'Utilidad bruta',    App.fmtCOP(totalUtil), 'venta menos costo de compra') +
         '</div>' +
         App._avisoCostosVentas(ventas) +
         '<div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3 text-xs text-blue-700 flex items-start gap-2">' +
-          '<span class="text-base shrink-0">ℹ️</span>' +
+          '<span class="text-base shrink-0"><i class="ph ph-info" aria-hidden="true"></i></span>' +
           '<span>Los valores mostrados son <strong>brutos</strong>. No incluyen costos fijos (alimentación, mano de obra, infraestructura) ni costos variables de operación, los cuales se incorporarán en una etapa posterior del sistema.</span>' +
         '</div>' +
         '<div class="bg-white rounded-xl border border-gray-200 overflow-hidden" style="overflow-x:auto">' +
@@ -2830,7 +2837,7 @@ var App = {
   // Cada columna dice también QUÉ SIGNIFICA y qué hacer cuando está vacía: una
   // columna en blanco sin explicación se lee como que el sistema falló.
   _TK_COLS: [
-    { k:'atrasadas', t:'Atrasadas',    s:'Se debían hacer y no se hicieron', ico:'⚠', tk:'--danger',
+    { k:'atrasadas', t:'Atrasadas',    s:'Se debían hacer y no se hicieron', ico:'<i class="ph ph-warning" aria-hidden="true"></i>', tk:'--danger',
       vacio:'Nada atrasado.', vacioS:'Todo lo de antes está resuelto.' },
     { k:'hoy',       t:'Hoy',          s:'Lo de este día',                   ico:'●', tk:'--accent',
       vacio:'Hoy no hay nada.', vacioS:'Ningún trabajo programado para hoy.' },
@@ -2924,7 +2931,7 @@ var App = {
     // avance el tablero solo enseña deudas.
     var hechas = d.hechas || [];
     html += '<div class="tk-hechas">' +
-      '<div class="tk-hechas-t">✔ Ya hechas <span>· en los últimos 7 días</span></div>' +
+      '<div class="tk-hechas-t"><i class="ph ph-check" aria-hidden="true"></i> Ya hechas <span>· en los últimos 7 días</span></div>' +
       (hechas.length
         ? '<div class="tk-hechas-lista">' + hechas.map(function(t) {
             return '<button class="tk-hecha" onclick="App.abrirModalTarea(\'' + t.id_tarea + '\')">' +
@@ -2966,11 +2973,11 @@ var App = {
     if (col === 'atrasadas') {
       var dd = t.dias_desfase;
       if (t.estado === 'NO_EJECUTADA') {
-        return '<span class="tk-cuando mal">✖ No se pudo' +
+        return '<span class="tk-cuando mal"><i class="ph ph-x" aria-hidden="true"></i> No se pudo' +
           (t.motivo ? ': ' + App._esc(t.motivo) : '') + '</span>' +
           '<span class="tk-cuando">Falta decidir para cuándo</span>';
       }
-      return '<span class="tk-cuando mal">⚠ Se debía hacer ' +
+      return '<span class="tk-cuando mal"><i class="ph ph-warning" aria-hidden="true"></i> Se debía hacer ' +
         (dd > 1 ? 'hace ' + dd + ' días' : dd === 1 ? 'ayer' : 'el ' + App.fmtFecha(f)) + '</span>';
     }
     if (col === 'hoy') {
@@ -3004,12 +3011,12 @@ var App = {
     var abierta = App._tablero.abierta === t.id_tarea;
     var urg = t.prioridad === 'URGENTE';
     var html = '<div class="tk-card' + (urg ? ' urgente' : '') + (abierta ? ' abierta' : '') + '">' +
-      (urg ? '<div class="tk-urg">🔺 Urgente</div>' : '') +
+      (urg ? '<div class="tk-urg"><i class="ph ph-caret-double-up" aria-hidden="true"></i> Urgente</div>' : '') +
       '<div class="tk-act">' + App._actIcono(t.actividad) + ' ' + App._esc(t.actividad) + '</div>' +
       '<div class="tk-donde">' + App._esc(t.predio_nombre || '') +
         (t.lote_nombre ? ' · <b>' + App._esc(t.lote_nombre) + '</b>' : ' · todo el predio') + '</div>' +
       App._tkCuando(t, col) +
-      (t.responsable ? '<div class="tk-quien">👤 ' + App._esc(t.responsable) + '</div>' : '') +
+      (t.responsable ? '<div class="tk-quien"><i class="ph ph-user" aria-hidden="true"></i> ' + App._esc(t.responsable) + '</div>' : '') +
       (t.descripcion ? '<div class="tk-desc">' + App._esc(t.descripcion) + '</div>' : '');
 
     html += abierta ? App._tkPanel(t) : App._tkBotones(t, col);
@@ -3026,15 +3033,15 @@ var App = {
 
     // Lo que más se usa va solo y ancho: es el que no se puede fallar.
     if (col !== 'adelante') {
-      b += '<button class="tk-b ok" onclick="App._tkAbrir(\'' + id + '\',\'hecha\')">✔ Ya se hizo</button>';
+      b += '<button class="tk-b ok" onclick="App._tkAbrir(\'' + id + '\',\'hecha\')"><i class="ph ph-check" aria-hidden="true"></i> Ya se hizo</button>';
     }
     // Los otros dos, en pareja: la tarjeta baja de alto y en la columna se ven
     // más tareas a la vez sin que ningún botón baje de lo que abarca un dedo.
     b += '<div class="tk-acc2">';
     if ((col === 'atrasadas' || col === 'hoy') && !yaFallida) {
-      b += '<button class="tk-b no" onclick="App._tkAbrir(\'' + id + '\',\'no\')">✖ No se pudo</button>';
+      b += '<button class="tk-b no" onclick="App._tkAbrir(\'' + id + '\',\'no\')"><i class="ph ph-x" aria-hidden="true"></i> No se pudo</button>';
     }
-    b += '<button class="tk-b mov" onclick="App._tkAbrir(\'' + id + '\',\'mover\')">📅 ' +
+    b += '<button class="tk-b mov" onclick="App._tkAbrir(\'' + id + '\',\'mover\')"><i class="ph ph-calendar" aria-hidden="true"></i> ' +
       (yaFallida ? 'Ponerle fecha' : 'Otro día') + '</button>';
     b += '</div>';
 
@@ -3355,7 +3362,7 @@ var App = {
           // La lluvia del día va en la esquina: es lo que explica por qué una
           // labor no se pudo hacer, y verla junto a la tarea ahorra el cruce.
           ((lluvia[iso] !== undefined && lluvia[iso] > 0)
-            ? '<span class="cal-mm" title="Llovió ' + lluvia[iso] + ' mm">💧' + lluvia[iso] + '</span>' : '') +
+            ? '<span class="cal-mm" title="Llovió ' + lluvia[iso] + ' mm"><i class="ph ph-drop" aria-hidden="true"></i>' + lluvia[iso] + '</span>' : '') +
           (iso === hoy ? '<span class="cal-hoy">hoy</span>' : '') + '</div>';
       // Tres fichas y "+N": más no caben sin que la casilla reviente.
       lista.slice(0, 3).forEach(function(t) {
@@ -3367,7 +3374,7 @@ var App = {
           'onclick="event.stopPropagation();App.abrirModalTarea(\'' + t.id_tarea + '\')" ' +
           'title="' + App._esc(t.actividad + ' · ' + (t.lote_nombre || t.predio_nombre) + ' · ' + inf.label) +
           ' — toca para abrirla">' +
-          (t.prioridad === 'URGENTE' ? '<span class="cal-urg" title="Urgente">🔺</span>' : '') +
+          (t.prioridad === 'URGENTE' ? '<span class="cal-urg" title="Urgente"><i class="ph ph-caret-double-up" aria-hidden="true"></i></span>' : '') +
           '<span class="cal-pt">' + inf.icono + '</span>' +
           App._esc(t.actividad) + (t.lote_nombre ? ' <span class="cal-lo">' + App._esc(t.lote_nombre) + '</span>' : '') +
         '</div>';
@@ -3384,7 +3391,7 @@ var App = {
         '<div class="dx-phead"><span class="dx-secico" style="--sc:var(--c-cyan)"><i class="ph ph-calendar-check"></i></span>' +
           '<div class="dx-ptitles"><div class="dx-ptitle">' + App.fmtFecha(e.diaAbierto) + '</div>' +
           '<div class="dx-psub">' + (delDia.length ? delDia.length + ' tarea' + (delDia.length !== 1 ? 's' : '') : 'Sin tareas este día') +
-          (lluvia[e.diaAbierto] !== undefined ? ' · 💧 ' + lluvia[e.diaAbierto] + ' mm de lluvia' : '') + '</div></div>' +
+          (lluvia[e.diaAbierto] !== undefined ? ' · <i class="ph ph-drop" aria-hidden="true"></i> ' + lluvia[e.diaAbierto] + ' mm de lluvia' : '') + '</div></div>' +
           '<button onclick="App.abrirModalTarea(null,\'' + e.diaAbierto + '\')" class="btn-secondary text-sm">+ Agregar</button>' +
         '</div>' +
         (delDia.length ? '<div class="tarea-lista">' + delDia.map(App._filaTarea).join('') + '</div>'
@@ -3395,7 +3402,7 @@ var App = {
     // Sin fincas cargadas el calendario es una rejilla muda: se dice qué falta.
     if (!predios.length) {
       html += '<div class="dx-panel"><div class="vacio-lluvia">' +
-        '<div class="vacio-ico">🗺️</div>' +
+        '<div class="vacio-ico"><i class="ph ph-map-trifold" aria-hidden="true"></i></div>' +
         '<div class="vacio-t">Todavía no hay fincas registradas</div>' +
         '<div class="vacio-s">Las tareas se cuelgan de una finca y, si quieres, de un lote. ' +
         'Si ya tienes animales cargados, ejecuta una vez <b>SEMBRAR_PREDIOS_DESDE_ANIMALES()</b> ' +
@@ -3414,7 +3421,7 @@ var App = {
     var dias = t.dias_desfase;
     return '<button class="atrasada" onclick="App.abrirModalTarea(\'' + t.id_tarea + '\')">' +
       '<span class="atrasada-ic" style="color:var(' + inf.tk + ')">' + inf.icono + '</span>' +
-      '<span class="atrasada-tx"><b>' + (t.prioridad === 'URGENTE' ? '🔺 ' : '') +
+      '<span class="atrasada-tx"><b>' + (t.prioridad === 'URGENTE' ? '<i class="ph ph-caret-double-up" aria-hidden="true"></i> ' : '') +
         App._actIcono(t.actividad) + ' ' + App._esc(t.actividad) + '</b>' +
         '<span>' + App._esc(t.lote_nombre || t.predio_nombre || '—') + ' · ' +
         (dias > 0 ? 'hace ' + dias + ' d' : App.fmtFecha(t.fecha_programada)) +
@@ -3442,21 +3449,21 @@ var App = {
     return '<div class="tarea-fila">' +
       '<div class="tarea-info">' +
         '<div class="tarea-tit">' +
-          (t.prioridad === 'URGENTE' ? '<span class="chip-urg">🔺 Urgente</span> ' : '') +
+          (t.prioridad === 'URGENTE' ? '<span class="chip-urg"><i class="ph ph-caret-double-up" aria-hidden="true"></i> Urgente</span> ' : '') +
           App._actIcono(t.actividad) + ' ' + App._esc(t.actividad) +
           (t.lote_nombre ? ' <span class="tarea-lo">' + App._esc(t.lote_nombre) + '</span>' : '') + '</div>' +
         '<div class="tarea-sub">' + App._esc(t.predio_nombre || '') +
           (t.responsable ? ' · ' + App._esc(t.responsable) : '') +
           (t.descripcion ? ' · ' + App._esc(t.descripcion) : '') + '</div>' +
-        (t.motivo ? '<div class="tarea-motivo">✖ ' + App._esc(t.motivo) + '</div>' : '') +
+        (t.motivo ? '<div class="tarea-motivo"><i class="ph ph-x" aria-hidden="true"></i> ' + App._esc(t.motivo) + '</div>' : '') +
         (t.observacion ? '<div class="tarea-sub">“' + App._esc(t.observacion) + '”</div>' : '') +
       '</div>' +
       '<div class="tarea-acc">' + App._tareaChip(t) +
         (t.estado === 'PROGRAMADA' || t.estado === 'EN_CURSO'
-          ? '<button onclick="App.abrirModalCerrar(\'' + t.id_tarea + '\',\'hecha\')" class="btn-secondary text-xs px-3 py-1">✔ Se hizo</button>' +
-            '<button onclick="App.abrirModalCerrar(\'' + t.id_tarea + '\',\'no\')" class="btn-secondary text-xs px-3 py-1">✖ No se hizo</button>' +
+          ? '<button onclick="App.abrirModalCerrar(\'' + t.id_tarea + '\',\'hecha\')" class="btn-secondary text-xs px-3 py-1"><i class="ph ph-check" aria-hidden="true"></i> Se hizo</button>' +
+            '<button onclick="App.abrirModalCerrar(\'' + t.id_tarea + '\',\'no\')" class="btn-secondary text-xs px-3 py-1"><i class="ph ph-x" aria-hidden="true"></i> No se hizo</button>' +
             '<button onclick="App._moverTarea(\'' + t.id_tarea + '\',\'' + t.fecha_programada + '\')" ' +
-              'class="btn-secondary text-xs px-3 py-1" title="Cambiar el día sin marcarla como fallida">📅 Mover</button>'
+              'class="btn-secondary text-xs px-3 py-1" title="Cambiar el día sin marcarla como fallida"><i class="ph ph-calendar" aria-hidden="true"></i> Mover</button>'
           : '') +
         '<button onclick="App.abrirModalTarea(\'' + t.id_tarea + '\')" class="btn-secondary text-xs px-3 py-1">Ver</button>' +
       '</div></div>';
@@ -3560,13 +3567,13 @@ var App = {
           '<div class="form-group"><label class="form-label">Prioridad</label>' +
             '<select id="tk_prio" class="form-input">' +
               '<option value="NORMAL"' + (t && t.prioridad === 'URGENTE' ? '' : ' selected') + '>Normal</option>' +
-              '<option value="URGENTE"' + (t && t.prioridad === 'URGENTE' ? ' selected' : '') + '>🔺 Urgente</option>' +
+              '<option value="URGENTE"' + (t && t.prioridad === 'URGENTE' ? ' selected' : '') + '>Urgente</option>' +
             '</select>' +
             '<div class="ayuda-campo">Urgente sube al principio del día y se marca en el calendario.</div></div>' +
         '</div>' +
         '<div class="form-group"><label class="form-label">Detalle</label>' +
           '<textarea id="tk_desc" rows="2" class="form-input" placeholder="Opcional">' + App._esc(t ? t.descripcion : '') + '</textarea></div>' +
-        (t && t.motivo ? '<div class="alerta-card alerta-warning">✖ ' + App._esc(t.motivo) + '</div>' : '') +
+        (t && t.motivo ? '<div class="alerta-card alerta-warning"><i class="ph ph-x" aria-hidden="true"></i> ' + App._esc(t.motivo) + '</div>' : '') +
         (t && t.reprogramada ? '<div class="alerta-card alerta-warning">↷ Reprogramada al ' +
           App.fmtFecha(t.sucesora_fecha) + '. Esta queda como registro de lo que pasó ese día.</div>' : '') +
         '<div class="flex justify-between items-center mt-4">' +
@@ -3577,7 +3584,7 @@ var App = {
                 // que no cuenta ninguna historia. Lo ya cerrado es historial y el
                 // servidor lo protege — allí queda Cancelar, que deja el motivo.
                 '<button onclick="App._eliminarTarea(\'' + t.id_tarea + '\',\'' + App._esc(t.actividad) + '\')" ' +
-                  'class="text-sm" style="color:var(--muted)" title="Borrarla del todo — solo si sobra">🗑 Borrar</button>' +
+                  'class="text-sm" style="color:var(--muted)" title="Borrarla del todo — solo si sobra"><i class="ph ph-trash" aria-hidden="true"></i> Borrar</button>' +
               '</div>'
             : '<span></span>') +
           '<div class="flex gap-3">' +
@@ -3699,7 +3706,7 @@ var App = {
         '</label>' +
         '<div class="flex justify-end gap-3 mt-4">' +
           '<button onclick="App.cerrarModal()" class="btn-secondary">Cancelar</button>' +
-          '<button onclick="App._completar(\'' + t.id_tarea + '\')" class="btn-primary px-6 py-2 text-sm">✔ Registrar</button>' +
+          '<button onclick="App._completar(\'' + t.id_tarea + '\')" class="btn-primary px-6 py-2 text-sm"><i class="ph ph-check" aria-hidden="true"></i> Registrar</button>' +
         '</div></div>';
     } else {
       html += '<div class="alerta-card alerta-warning" style="margin-bottom:14px">' +
@@ -3770,7 +3777,7 @@ var App = {
       var lunes = App._proximoLunes();
       var html = '<div class="p-6">' +
         '<div class="flex items-center justify-between mb-1">' +
-          '<h2 class="text-lg font-bold">🗓️ Programar la semana</h2>' +
+          '<h2 class="text-lg font-bold"><i class="ph ph-calendar" aria-hidden="true"></i> Programar la semana</h2>' +
           '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
         '</div>' +
         '<p class="text-xs mb-4" style="color:var(--muted)">Elige el predio y el responsable una vez, y agrega abajo las labores acordadas.</p>' +
@@ -3995,7 +4002,7 @@ var App = {
     // gráfica plana, que se leen como si el sistema estuviera roto.
     if (!d.hayDatos) {
       html += '<div class="dx-panel"><div class="vacio-lluvia">' +
-        '<div class="vacio-ico">🌧️</div>' +
+        '<div class="vacio-ico"><i class="ph ph-cloud-rain" aria-hidden="true"></i></div>' +
         '<div class="vacio-t">La hoja de lluvias está lista y vacía</div>' +
         '<div class="vacio-s">Cada mañana, el encargado mira el pluviómetro y anota los milímetros. ' +
         'Con «Registrar lluvia» queda guardado por finca y por día.<br><br>' +
@@ -4103,7 +4110,7 @@ var App = {
     var hoy = App._hoyISO();
     App.abrirModal('<div class="p-6">' +
       '<div class="flex items-center justify-between mb-1">' +
-        '<h2 class="text-lg font-bold">🌧️ Registrar lluvia</h2>' +
+        '<h2 class="text-lg font-bold"><i class="ph ph-cloud-rain" aria-hidden="true"></i> Registrar lluvia</h2>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button></div>' +
       '<p class="text-xs mb-4" style="color:var(--muted)">Los milímetros que marcó el pluviómetro ese día. ' +
         'Si no llovió, anota <b>0</b>: también es un dato.</p>' +
@@ -4419,7 +4426,7 @@ var App = {
       html += '</tbody></table></div>';
 
       if (res.notaCompra) {
-        html += '<div class="alerta-card alerta-warning" style="margin:10px 2px 0;font-size:13px">⚠ ' + App._esc(res.notaCompra) + '</div>';
+        html += '<div class="alerta-card alerta-warning" style="margin:10px 2px 0;font-size:13px"><i class="ph ph-warning" aria-hidden="true"></i> ' + App._esc(res.notaCompra) + '</div>';
       }
       html += '</div>';
 
@@ -4583,7 +4590,7 @@ var App = {
         return '<div class="alerta-card alerta-' + nivel + ' flex items-center gap-3">' +
           '<div class="flex-1 min-w-0">' +
             '<div class="flex items-center gap-2 flex-wrap">' +
-              '<span class="chip-record ' + (nivel === 'danger' ? 'vencido' : 'vigente') + '">🔔 Recordatorio</span>' +
+              '<span class="chip-record ' + (nivel === 'danger' ? 'vencido' : 'vigente') + '"><i class="ph ph-bell" aria-hidden="true"></i> Recordatorio</span>' +
               '<span class="font-bold">' + e.codigo + '</span>' +
               '<span class="text-gray-700 text-sm"><span class="san-ico">' + App._sanIcono(e.tipo) + '</span>' + e.tipo + '</span>' +
               (e.medicamento ? '<span class="text-gray-500 text-xs">· ' + e.medicamento + '</span>' : '') +
@@ -4596,7 +4603,7 @@ var App = {
           '</div>' +
           '<a href="#/animal/' + encodeURIComponent(e.codigo) + '" class="text-blue-600 text-xs font-medium shrink-0 hover:underline">Ver</a>' +
           '<button onclick="App._eliminarEventoSanitario(\'' + e.id_evento + '\')" ' +
-            'class="text-gray-300 hover:text-red-500 text-lg leading-none shrink-0" title="Eliminar recordatorio">🗑</button>' +
+            'class="text-gray-300 hover:text-red-500 text-lg leading-none shrink-0" title="Eliminar recordatorio"><i class="ph ph-trash" aria-hidden="true"></i></button>' +
         '</div>';
       }
 
@@ -4605,12 +4612,12 @@ var App = {
       // ── Cabecera ──
       html += '<div class="flex items-center justify-between">' +
         '<div class="flex items-center gap-3">' +
-          '<h2 class="text-lg font-bold text-gray-800">💉 Sanidad</h2>' +
+          '<h2 class="text-lg font-bold text-gray-800"><i class="ph ph-syringe" aria-hidden="true"></i> Sanidad</h2>' +
           (vencidas.length ? '<span class="badge badge-red">' + vencidas.length + ' vencida' + (vencidas.length>1?'s':'') + '</span>' : '') +
           (proximas.length ? '<span class="badge badge-yellow">' + proximas.length + ' próxima' + (proximas.length>1?'s':'') + '</span>' : '') +
         '</div>' +
         '<div class="flex gap-2">' +
-          '<button onclick="App.abrirModalEventoLote()" class="btn-secondary text-sm px-4 py-2">💉 Por lote</button>' +
+          '<button onclick="App.abrirModalEventoLote()" class="btn-secondary text-sm px-4 py-2"><i class="ph ph-syringe" aria-hidden="true"></i> Por lote</button>' +
           '<button onclick="App.abrirModalSanidad()" class="btn-primary text-sm px-4 py-2">+ Agregar evento</button>' +
         '</div>' +
       '</div>';
@@ -4621,9 +4628,9 @@ var App = {
       html += '<div class="rounded-xl px-4 py-3 text-xs flex flex-wrap items-center gap-x-5 gap-y-2" ' +
           'style="background:var(--surface-2);border:1px solid var(--border)">' +
         '<span class="font-semibold" style="color:var(--ink)">Cómo leer esta vista:</span>' +
-        '<span style="color:var(--ink-2)"><span class="chip-record vigente">🔔 Recordatorio</span> seguimiento programado, aún no realizado</span>' +
-        '<span style="color:var(--ink-2)"><span class="chip-record vencido">⏰ Vencido</span> pasó su fecha y sigue pendiente</span>' +
-        '<span style="color:var(--ink-2)"><span class="chip-record cumplido">✔ Cumplido</span> atendido por un evento posterior</span>' +
+        '<span style="color:var(--ink-2)"><span class="chip-record vigente"><i class="ph ph-bell" aria-hidden="true"></i> Recordatorio</span> seguimiento programado, aún no realizado</span>' +
+        '<span style="color:var(--ink-2)"><span class="chip-record vencido"><i class="ph ph-clock" aria-hidden="true"></i> Vencido</span> pasó su fecha y sigue pendiente</span>' +
+        '<span style="color:var(--ink-2)"><span class="chip-record cumplido"><i class="ph ph-check" aria-hidden="true"></i> Cumplido</span> atendido por un evento posterior</span>' +
         '<span style="color:var(--muted)">Cada fila del historial es un <b style="color:var(--ink-2)">evento realizado</b>.</span>' +
       '</div>';
 
@@ -4631,7 +4638,7 @@ var App = {
       if (vencidas.length > 0) {
         html += '<div class="bg-white rounded-xl border border-red-200 overflow-hidden">' +
           '<div class="px-5 py-3 bg-red-50 border-b border-red-200 flex items-center gap-2">' +
-            '<span class="text-red-600 font-bold text-sm">🚨 Recordatorios vencidos (' + vencidas.length + ')</span>' +
+            '<span class="text-red-600 font-bold text-sm"><i class="ph ph-siren" aria-hidden="true"></i> Recordatorios vencidos (' + vencidas.length + ')</span>' +
             '<span class="text-xs text-red-400">— seguimientos pendientes cuya fecha ya pasó</span>' +
           '</div>' +
           '<div class="p-4 space-y-1">';
@@ -4642,7 +4649,7 @@ var App = {
       // ── Sección próximas ──
       html += '<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">' +
         '<div class="px-5 py-3 border-b border-gray-100 flex items-center gap-2">' +
-          '<span class="font-semibold text-gray-700 text-sm">🔔 Recordatorios próximos — siguientes 30 días (' + proximas.length + ')</span>' +
+          '<span class="font-semibold text-gray-700 text-sm"><i class="ph ph-bell" aria-hidden="true"></i> Recordatorios próximos — siguientes 30 días (' + proximas.length + ')</span>' +
         '</div>' +
         '<div class="p-4 space-y-1">';
       if (proximas.length === 0) {
@@ -4656,7 +4663,7 @@ var App = {
       html += '<div class="bg-white rounded-xl border border-gray-200 overflow-hidden">' +
         '<div class="px-5 py-3 border-b border-gray-100">' +
           '<div class="flex flex-wrap items-center justify-between gap-3">' +
-            '<span class="font-semibold text-gray-700 text-sm">📋 Historial completo (' + todos.length + ' eventos)</span>' +
+            '<span class="font-semibold text-gray-700 text-sm"><i class="ph ph-clipboard-text" aria-hidden="true"></i> Historial completo (' + todos.length + ' eventos)</span>' +
             '<div class="flex flex-wrap gap-2">' +
               '<input type="text" id="san-q" placeholder="Buscar animal…" oninput="App._filtrarHistorialSan()" class="form-input text-sm py-1.5 w-36">' +
               '<select id="san-tipo" onchange="App._filtrarHistorialSan()" class="form-input text-sm py-1.5 w-auto">' +
@@ -4741,7 +4748,7 @@ var App = {
             '<td>' + respCell + '</td>' +
             '<td class="text-gray-500 text-xs max-w-xs">' + obsCell + '</td>' +
             '<td><button onclick="App._eliminarGrupoSanitario(\'' + ids.join(',') + '\', ' + ids.length + ')" ' +
-              'class="text-gray-300 hover:text-red-500 text-lg" title="Eliminar ' + ids.length + ' evento(s) de este día">🗑</button></td>' +
+              'class="text-gray-300 hover:text-red-500 text-lg" title="Eliminar ' + ids.length + ' evento(s) de este día"><i class="ph ph-trash" aria-hidden="true"></i></button></td>' +
           '</tr>';
         });
       }
@@ -4826,7 +4833,7 @@ var App = {
 
       // ── Header sticky ────────────────────────────────────────────────
       form += '<div class="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10">' +
-        '<div><h2 class="text-lg font-bold text-gray-900">' + (esNuevo ? '🐄 Registrar nuevo animal' : '✏️ Editar animal ' + codigo) + '</h2>' +
+        '<div><h2 class="text-lg font-bold text-gray-900">' + (esNuevo ? '<i class="ph ph-cow" aria-hidden="true"></i> Registrar nuevo animal' : '<i class="ph ph-pencil-simple" aria-hidden="true"></i> Editar animal ' + codigo) + '</h2>' +
         (esNuevo ? '<p class="text-xs text-gray-400 mt-0.5">Completa los datos del animal para registrarlo en el sistema</p>' : '') +
         '</div>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-xl font-bold">×</button>' +
@@ -4852,7 +4859,7 @@ var App = {
         var _esNacAhora = ingreso === 'NACIMIENTO';
         form += '<div class="flex items-center justify-between flex-wrap gap-3">' +
           '<span class="badge ' + (_esNacAhora ? 'badge-blue' : 'badge-green') + '" id="badge_ingreso">' +
-            'Ingreso: ' + (_esNacAhora ? '👶 Nacimiento' : '🛒 Compra') + '</span>' +
+            'Ingreso: ' + (_esNacAhora ? '<i class="ph ph-baby-carriage" aria-hidden="true"></i> Nacimiento' : '<i class="ph ph-shopping-cart" aria-hidden="true"></i> Compra') + '</span>' +
           '<label class="flex items-center gap-2 text-sm text-gray-600 cursor-pointer" ' +
             'title="Para reses que en realidad nacieron en la finca y se habían registrado como compra.">' +
             '<input type="checkbox" id="chk_es_nacimiento" class="w-4 h-4 accent-green-700" ' +
@@ -4886,7 +4893,7 @@ var App = {
         '<input type="hidden" id="f_predio" value="' + predioActual + '">' +
         '<select id="f_predio_sel" class="form-input" onchange="App._onCambioPredi(this)">' +
           selectOpts(opts.predios, predioActual, '— Seleccionar finca —') +
-          '<option value="__nueva__">➕ Escribir nueva finca…</option>' +
+          '<option value="__nueva__">Escribir nueva finca…</option>' +
         '</select>' +
         '<input type="text" id="f_predio_nueva" class="form-input mt-2" placeholder="Nombre de la nueva finca…" style="display:none" oninput="document.getElementById(\'f_predio\').value=this.value">' +
         '<p class="form-hint">Cambia la finca cuando el animal sea trasladado a otro predio.</p></div>';
@@ -4900,7 +4907,7 @@ var App = {
         '<input type="hidden" id="f_propietario" value="' + App._esc(propietarioActual) + '">' +
         '<select id="f_propietario_sel" class="form-input" onchange="App._onCambioPropietario(this)">' +
           selectOpts(propietariosDisponibles, propietarioActual, '— Seleccionar propietario —') +
-          '<option value="__nuevo__">➕ Escribir nuevo propietario…</option>' +
+          '<option value="__nuevo__">Escribir nuevo propietario…</option>' +
         '</select>' +
         '<input type="text" id="f_propietario_nuevo" class="form-input mt-2" placeholder="Nombre de la persona o empresa…" maxlength="200" style="display:none" oninput="document.getElementById(\'f_propietario\').value=this.value">' +
         '<p class="form-hint">Puedes elegir uno existente o registrar uno nuevo.</p></div>';
@@ -5024,10 +5031,10 @@ var App = {
                       'onmouseleave="document.getElementById(\'_tip_est\').style.display=\'none\'">?</button>' +
                     '<div id="_tip_est" style="display:none;position:absolute;bottom:calc(100% + 6px);left:-8px;width:260px;background:var(--surface);color:var(--ink-2);font-size:11px;border-radius:10px;padding:12px 14px;z-index:500;border:1px solid var(--border-2);box-shadow:var(--shadow-lg);line-height:1.65;pointer-events:none">' +
                       '<b style="color:var(--accent);display:block;margin-bottom:7px">Estados reproductivos</b>' +
-                      '<div style="margin-bottom:4px"><b style="color:var(--ok)">🤰 Preñada</b> — En gestación confirmada. Se habilita el campo de meses.</div>' +
+                      '<div style="margin-bottom:4px"><b style="color:var(--ok)"><i class="ph ph-baby" aria-hidden="true"></i> Preñada</b> — En gestación confirmada. Se habilita el campo de meses.</div>' +
                       '<div style="margin-bottom:4px"><b style="color:var(--muted)">○ No preñada</b> — No está gestando en el momento del diagnóstico.</div>' +
-                      '<div style="margin-bottom:4px"><b style="color:var(--warn)">❓ Dudosa</b> — Diagnóstico no concluyente; se recomienda repetir la palpación.</div>' +
-                      '<div><b style="color:var(--c-amber)">🔥 En celo</b> — Apta para servicio o inseminación artificial.</div>' +
+                      '<div style="margin-bottom:4px"><b style="color:var(--warn)"><i class="ph ph-question" aria-hidden="true"></i> Dudosa</b> — Diagnóstico no concluyente; se recomienda repetir la palpación.</div>' +
+                      '<div><b style="color:var(--c-amber)"><i class="ph ph-fire" aria-hidden="true"></i> En celo</b> — Apta para servicio o inseminación artificial.</div>' +
                     '</div>' +
                   '</span>' +
                 '</label>' +
@@ -5106,7 +5113,7 @@ var App = {
       // ── Footer sticky ────────────────────────────────────────────────
       form += '<div class="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex items-center justify-between">' +
         (codigo
-          ? '<button onclick="App.cerrarModal();App.abrirModalCambiarCodigo(\'' + String(codigo).replace(/'/g, "\\'") + '\')" class="text-sm text-orange-600 hover:text-orange-800 font-medium flex items-center gap-1"><span>⚠️</span> Cambiar código</button>'
+          ? '<button onclick="App.cerrarModal();App.abrirModalCambiarCodigo(\'' + String(codigo).replace(/'/g, "\\'") + '\')" class="text-sm text-orange-600 hover:text-orange-800 font-medium flex items-center gap-1"><span><i class="ph ph-warning" aria-hidden="true"></i></span> Cambiar código</button>'
           : '<span></span>') +
         '<div class="flex gap-3">' +
           '<button onclick="App.cerrarModal()" class="btn-secondary">Cancelar</button>' +
@@ -5166,7 +5173,7 @@ var App = {
     var badge = document.getElementById('badge_ingreso');
     if (badge) {
       badge.className = 'badge ' + (esNac ? 'badge-blue' : 'badge-green');
-      badge.textContent = 'Ingreso: ' + (esNac ? '👶 Nacimiento' : '🛒 Compra');
+      badge.innerHTML = 'Ingreso: ' + (esNac ? '<i class="ph ph-baby-carriage" aria-hidden="true"></i> Nacimiento' : '<i class="ph ph-shopping-cart" aria-hidden="true"></i> Compra');
     }
   },
 
@@ -5458,7 +5465,7 @@ var App = {
 
     var html = '<div class="p-6">' +
       '<div class="flex items-start justify-between mb-1">' +
-        '<h2 class="text-lg font-bold">⏱ Sin pesar hace más de 45 días</h2>' +
+        '<h2 class="text-lg font-bold"><i class="ph ph-timer" aria-hidden="true"></i> Sin pesar hace más de 45 días</h2>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
       '</div>' +
       '<div class="text-sm mb-4" style="color:var(--muted)">' + lista.length + ' animal' +
@@ -5486,7 +5493,7 @@ var App = {
         return '<tr><td class="font-mono font-bold">' + App._esc(a.c) + '</td>' +
           '<td>' + App._esc(a.t) + '</td><td>' + App._esc(a.p) + '</td><td>' + txt + '</td>' +
           '<td class="text-right"><button onclick="App.abrirModalMedicion(' +
-            JSON.stringify(a.c).replace(/"/g, '&quot;') + ')" class="btn-secondary text-xs px-3 py-1">⚖ Pesar</button></td></tr>';
+            JSON.stringify(a.c).replace(/"/g, '&quot;') + ')" class="btn-secondary text-xs px-3 py-1"><i class="ph ph-scales" aria-hidden="true"></i> Pesar</button></td></tr>';
       }).join('') +
       '</tbody></table></div>' +
       '<div class="flex justify-end mt-4"><button onclick="App.cerrarModal()" class="btn-secondary">Cerrar</button></div>' +
@@ -5498,7 +5505,7 @@ var App = {
     if (!codigo) {
       // Sin código: mostrar selector de animal primero
       App.estado._cbSelector = function(c) { App.abrirModalMedicion(c); };
-      App._mostrarSelectorAnimal('📏 Registrar pesaje — selecciona el animal');
+      App._mostrarSelectorAnimal('<i class="ph ph-ruler" aria-hidden="true"></i> Registrar pesaje — selecciona el animal');
       return;
     }
 
@@ -5555,7 +5562,7 @@ var App = {
   abrirModalVenta: function(codigo) {
     if (!codigo) {
       App.estado._cbSelector = function(c) { App.abrirModalVenta(c); };
-      App._mostrarSelectorAnimal('💰 Registrar venta — selecciona el animal');
+      App._mostrarSelectorAnimal('<i class="ph ph-money" aria-hidden="true"></i> Registrar venta — selecciona el animal');
       return;
     }
 
@@ -5578,11 +5585,11 @@ var App = {
     var bannerPrenada = '', chipModal = '';
     if (repro.nivel === 'prenada' || repro.nivel === 'dudosa') {
       var esDudosa = repro.nivel === 'dudosa';
-      chipModal = esDudosa ? ' <span class="chip-repro dudosa">❓ DUDOSA</span>' : ' <span class="chip-repro prenada">🤰 PREÑADA</span>';
+      chipModal = esDudosa ? ' <span class="chip-repro dudosa"><i class="ph ph-question" aria-hidden="true"></i> DUDOSA</span>' : ' <span class="chip-repro prenada"><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA</span>';
       bannerPrenada = '<div class="venta-alerta-prenada">' +
         '<div class="vap-head">' + (esDudosa
-          ? '❓ OJO: la última palpación quedó DUDOSA — podría estar preñada'
-          : '🤰 ¡CUIDADO! Esta hembra está PREÑADA' +
+          ? '<i class="ph ph-question" aria-hidden="true"></i> OJO: la última palpación quedó DUDOSA — podría estar preñada'
+          : '<i class="ph ph-baby" aria-hidden="true"></i> ¡CUIDADO! Esta hembra está PREÑADA' +
             (repro.meses ? ' — gestación ~' + repro.meses + ' meses' : '') +
             (repro.vencida ? ' (a término: ¿ya parió?)' : '')) + '</div>' +
         '<p>' + (esDudosa
@@ -5591,8 +5598,8 @@ var App = {
         '<label><input type="checkbox" id="v_conf_prenada"> Entiendo el estado de <b>' + codigo + '</b> y aun así deseo venderla</label>' +
       '</div>';
     } else if (repro.nivel === 'sinchequeo') {
-      chipModal = ' <span class="chip-repro sinchequeo">❓ Sin chequeo</span>';
-      bannerPrenada = '<div class="venta-alerta-chequeo">❓ <b>' + codigo + '</b> es hembra <b>sin chequeo reproductivo registrado</b> — el sistema no puede saber si está preñada. Confírmalo en el corral antes de cerrar la venta.</div>';
+      chipModal = ' <span class="chip-repro sinchequeo"><i class="ph ph-question" aria-hidden="true"></i> Sin chequeo</span>';
+      bannerPrenada = '<div class="venta-alerta-chequeo"><i class="ph ph-question" aria-hidden="true"></i> <b>' + codigo + '</b> es hembra <b>sin chequeo reproductivo registrado</b> — el sistema no puede saber si está preñada. Confírmalo en el corral antes de cerrar la venta.</div>';
     }
 
     var html = '<div class="p-6">' +
@@ -5663,7 +5670,7 @@ var App = {
     // la casilla de confirmación es obligatoria para poder registrar la venta.
     var confPren = document.getElementById('v_conf_prenada');
     if (confPren && !confPren.checked) {
-      App.toast('🤰 Esta hembra está preñada (o con palpación dudosa). Marca la casilla de confirmación si realmente deseas venderla.', 'error');
+      App.toast('Esta hembra está preñada (o con palpación dudosa). Marca la casilla de confirmación si realmente deseas venderla.', 'error');
       return;
     }
     var peso   = App._leerNum('v_peso');
@@ -5707,7 +5714,7 @@ var App = {
   abrirModalSanidad: function(codigo) {
     if (!codigo) {
       App.estado._cbSelector = function(c) { App.abrirModalSanidad(c); };
-      App._mostrarSelectorAnimal('💉 Evento sanitario — selecciona el animal');
+      App._mostrarSelectorAnimal('<i class="ph ph-syringe" aria-hidden="true"></i> Evento sanitario — selecciona el animal');
       return;
     }
 
@@ -5757,7 +5764,7 @@ var App = {
 
       var html = '<div class="p-6">' +
         '<div class="flex items-center justify-between mb-1">' +
-          '<h2 class="text-lg font-bold">💉 Evento sanitario por lote</h2>' +
+          '<h2 class="text-lg font-bold"><i class="ph ph-syringe" aria-hidden="true"></i> Evento sanitario por lote</h2>' +
           '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
         '</div>' +
         '<p class="text-xs text-gray-400 mb-4">Define el procedimiento una sola vez y marca los animales a los que se aplica.</p>' +
@@ -5886,7 +5893,7 @@ var App = {
   abrirModalMuerte: function(codigo) {
     if (!codigo) {
       App.estado._cbSelector = function(c) { App.abrirModalMuerte(c); };
-      App._mostrarSelectorAnimal('✝ Registrar muerte — selecciona el animal');
+      App._mostrarSelectorAnimal('<i class="ph ph-cross" aria-hidden="true"></i> Registrar muerte — selecciona el animal');
       return;
     }
     App.estado._fotoMuerte = null;
@@ -5919,7 +5926,7 @@ var App = {
 
     var html = '<div class="p-6">' +
       '<div class="flex items-center justify-between mb-1">' +
-        '<h2 class="text-lg font-bold">' + (yaMuerto ? '✏️ Corregir registro de muerte' : '✝ Registrar muerte') + ' — <span style="color:var(--accent)">' + codigo + '</span></h2>' +
+        '<h2 class="text-lg font-bold">' + (yaMuerto ? '<i class="ph ph-pencil-simple" aria-hidden="true"></i> Corregir registro de muerte' : '<i class="ph ph-cross" aria-hidden="true"></i> Registrar muerte') + ' — <span style="color:var(--accent)">' + codigo + '</span></h2>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
       '</div>' +
       '<p class="text-xs text-gray-400 mb-4">' + (ctx.join(' · ') || 'Animal registrado') +
@@ -5964,12 +5971,12 @@ var App = {
 
       '<div class="flex justify-between items-center mt-5 flex-wrap gap-3">' +
         (yaMuerto
-          ? '<button onclick="App.revertirMuerte(\'' + String(codigo).replace(/'/g, "\\'") + '\')" class="text-xs text-gray-400 hover:text-red-500">↩ No murió — devolver a activo</button>'
+          ? '<button onclick="App.revertirMuerte(\'' + String(codigo).replace(/'/g, "\\'") + '\')" class="text-xs text-gray-400 hover:text-red-500"><i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> No murió — devolver a activo</button>'
           : '<span></span>') +
         '<div class="flex gap-3">' +
           '<button onclick="App.cerrarModal()" class="btn-secondary">Cancelar</button>' +
           '<button onclick="App._guardarMuerte(\'' + String(codigo).replace(/'/g, "\\'") + '\')" class="btn-primary px-6 py-2.5 text-sm">' +
-            (yaMuerto ? '✓ Guardar cambios' : '✝ Registrar muerte') + '</button>' +
+            (yaMuerto ? '✓ Guardar cambios' : '<i class="ph ph-cross" aria-hidden="true"></i> Registrar muerte') + '</button>' +
         '</div>' +
       '</div></div>';
 
@@ -6085,7 +6092,7 @@ var App = {
       motivos.map(function(m){ return '<option value="' + m + '"' + (motDesc === m ? ' selected' : '') + '>' + m + '</option>'; }).join('');
     var html = '<div class="p-6">' +
       '<div class="flex items-center justify-between mb-5">' +
-        '<h2 class="text-lg font-bold">✂️ Descarte — ' + subtitulo + '</h2>' +
+        '<h2 class="text-lg font-bold"><i class="ph ph-scissors" aria-hidden="true"></i> Descarte — ' + subtitulo + '</h2>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
       '</div>' +
       '<div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-xs text-amber-800">' +
@@ -6143,7 +6150,7 @@ var App = {
   abrirModalRegistro: function(codigo) {
     if (!codigo) {
       App.estado._cbSelector = function(c) { App.abrirModalRegistro(c); };
-      App._mostrarSelectorAnimal('📋 Registro — selecciona el animal');
+      App._mostrarSelectorAnimal('<i class="ph ph-clipboard-text" aria-hidden="true"></i> Registro — selecciona el animal');
       return;
     }
 
@@ -6168,7 +6175,7 @@ var App = {
 
       var html = '<div class="p-6 max-h-screen overflow-y-auto">' +
         '<div class="flex items-center justify-between mb-4">' +
-          '<h2 class="text-lg font-bold">📋 Registro — <span class="text-green-700">' + a.codigo + '</span></h2>' +
+          '<h2 class="text-lg font-bold"><i class="ph ph-clipboard-text" aria-hidden="true"></i> Registro — <span class="text-green-700">' + a.codigo + '</span></h2>' +
           '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
         '</div>' +
         '<div class="text-sm text-gray-500 mb-3">' + (a.tipo || '') + ' · ' + (a.predio || '') + (a.propietario ? ' · ' + a.propietario : '') + '</div>' +
@@ -6181,7 +6188,7 @@ var App = {
         '<div class="border border-gray-200 rounded-lg p-4 mb-4">' +
           '<label class="flex items-center gap-2 cursor-pointer mb-3">' +
             '<input type="checkbox" id="chk_pesaje" onchange="App._toggleRegSec(\'sec_pesaje\')" class="w-4 h-4 rounded text-green-700">' +
-            '<span class="font-semibold text-gray-700">⚖️ Pesaje</span>' +
+            '<span class="font-semibold text-gray-700"><i class="ph ph-scales" aria-hidden="true"></i> Pesaje</span>' +
           '</label>' +
           '<div id="sec_pesaje" class="hidden pl-2">' +
             '<div class="form-group"><label class="form-label">Peso (kg) *</label>' +
@@ -6193,16 +6200,16 @@ var App = {
 
         // Sección procedimientos
         '<div class="border border-gray-200 rounded-lg p-4 mb-4">' +
-          '<p class="font-semibold text-gray-700 mb-3">💉 Procedimientos realizados</p>' +
+          '<p class="font-semibold text-gray-700 mb-3"><i class="ph ph-syringe" aria-hidden="true"></i> Procedimientos realizados</p>' +
           '<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">' + App._sanCheckboxes('proc-check', 'reg') +
-            '<label class="proc-checkbox-label"><input type="checkbox" id="proc_pal" class="proc-check w-4 h-4 accent-green-700" value="PALPACIÓN VETERINARIA" data-tipo="PALPACIÓN VETERINARIA"><span><span class="san-ico">🩺</span> Palpación Vet.</span></label>' +
+            '<label class="proc-checkbox-label"><input type="checkbox" id="proc_pal" class="proc-check w-4 h-4 accent-green-700" value="PALPACIÓN VETERINARIA" data-tipo="PALPACIÓN VETERINARIA"><span><span class="san-ico"><i class="ph ph-stethoscope" aria-hidden="true"></i></span> Palpación Vet.</span></label>' +
           '</div>' +
           App._procDetalles('reg', 'reg_fecha') +
         '</div>' +
 
         // Resultado palpación (visible solo cuando proc_pal está marcado)
         '<div id="sec_reg_palpacion" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-4 mb-2">' +
-          '<div class="text-xs font-semibold text-blue-700 mb-3">🩺 Resultado de la palpación veterinaria</div>' +
+          '<div class="text-xs font-semibold text-blue-700 mb-3"><i class="ph ph-stethoscope" aria-hidden="true"></i> Resultado de la palpación veterinaria</div>' +
           '<div class="space-y-3">' +
             '<div class="grid grid-cols-2 gap-4">' +
               '<div class="form-group mb-0">' +
@@ -6213,10 +6220,10 @@ var App = {
                       'onmouseleave="document.getElementById(\'_tip_est\').style.display=\'none\'">?</button>' +
                     '<div id="_tip_est" style="display:none;position:absolute;bottom:calc(100% + 6px);left:-8px;width:260px;background:var(--surface);color:var(--ink-2);font-size:11px;border-radius:10px;padding:12px 14px;z-index:500;border:1px solid var(--border-2);box-shadow:var(--shadow-lg);line-height:1.65;pointer-events:none">' +
                       '<b style="color:var(--accent);display:block;margin-bottom:7px">Estados reproductivos</b>' +
-                      '<div style="margin-bottom:4px"><b style="color:var(--ok)">🤰 Preñada</b> — En gestación confirmada. Se habilita el campo de meses.</div>' +
+                      '<div style="margin-bottom:4px"><b style="color:var(--ok)"><i class="ph ph-baby" aria-hidden="true"></i> Preñada</b> — En gestación confirmada. Se habilita el campo de meses.</div>' +
                       '<div style="margin-bottom:4px"><b style="color:var(--muted)">○ No preñada</b> — No está gestando en el momento del diagnóstico.</div>' +
-                      '<div style="margin-bottom:4px"><b style="color:var(--warn)">❓ Dudosa</b> — Diagnóstico no concluyente; se recomienda repetir la palpación.</div>' +
-                      '<div><b style="color:var(--c-amber)">🔥 En celo</b> — Apta para servicio o inseminación artificial.</div>' +
+                      '<div style="margin-bottom:4px"><b style="color:var(--warn)"><i class="ph ph-question" aria-hidden="true"></i> Dudosa</b> — Diagnóstico no concluyente; se recomienda repetir la palpación.</div>' +
+                      '<div><b style="color:var(--c-amber)"><i class="ph ph-fire" aria-hidden="true"></i> En celo</b> — Apta para servicio o inseminación artificial.</div>' +
                     '</div>' +
                   '</span>' +
                 '</label>' +
@@ -6393,7 +6400,7 @@ var App = {
   abrirModalCambiarCodigo: function(codigoActual) {
     var html = '<div class="p-6">' +
       '<div class="flex items-center justify-between mb-5">' +
-        '<h2 class="text-lg font-bold text-orange-700">⚠️ Cambiar código de animal</h2>' +
+        '<h2 class="text-lg font-bold text-orange-700"><i class="ph ph-warning" aria-hidden="true"></i> Cambiar código de animal</h2>' +
         '<button onclick="App.cerrarModal()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
       '</div>' +
       '<div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4 text-sm text-orange-800">' +
@@ -6446,7 +6453,7 @@ var App = {
       App._subtabs('salida', '#/finanzas') +
       '<div class="flex flex-col items-center justify-center py-20">' +
         '<div class="bg-white rounded-xl border border-gray-200 p-8 max-w-sm w-full text-center">' +
-          '<div class="text-4xl mb-4">🔒</div>' +
+          '<div class="text-4xl mb-4"><i class="ph ph-lock" aria-hidden="true"></i></div>' +
           '<h2 class="text-xl font-bold text-gray-800 mb-2">Sección financiera</h2>' +
           '<p class="text-sm text-gray-500 mb-6">Ingresa el PIN para acceder a los datos financieros</p>' +
           '<input type="password" id="pin-input" maxlength="12" placeholder="••••" ' +
@@ -6669,7 +6676,7 @@ var App = {
 
     if (conRoi.length === 0) {
       html += '<div class="dx-panel" style="text-align:center;padding:48px 22px">' +
-        '<div style="font-size:2.6rem;margin-bottom:10px">📊</div>' +
+        '<div style="font-size:2.6rem;margin-bottom:10px"><i class="ph ph-chart-bar" aria-hidden="true"></i></div>' +
         '<div class="dx-ptitle">Aún no hay ventas para analizar</div>' +
         '<div class="dx-psub" style="margin-top:6px">Cuando registres ventas, aquí verás la rentabilidad de cada animal, el retorno mensual y la utilidad por día.</div></div>';
     } else {
@@ -6910,9 +6917,9 @@ var App = {
 
   _FAC_ESTADO: {
     PENDIENTE: { tk:'--muted',  ico:'●', lab:'Sin enviar' },
-    ENVIADA:   { tk:'--info',   ico:'✉', lab:'Enviada' },
-    APROBADA:  { tk:'--ok',     ico:'✔', lab:'Aprobada' },
-    DEVUELTA:  { tk:'--danger', ico:'✖', lab:'Devuelta' }
+    ENVIADA:   { tk:'--info',   ico:'<i class="ph ph-envelope-simple" aria-hidden="true"></i>', lab:'Enviada' },
+    APROBADA:  { tk:'--ok',     ico:'<i class="ph ph-check" aria-hidden="true"></i>', lab:'Aprobada' },
+    DEVUELTA:  { tk:'--danger', ico:'<i class="ph ph-x" aria-hidden="true"></i>', lab:'Devuelta' }
   },
   _facChip: function(f) {
     var e = App._FAC_ESTADO[f.estado] || App._FAC_ESTADO.PENDIENTE;
@@ -6940,7 +6947,7 @@ var App = {
           }).join('') +
         '</select>' +
         '<button onclick="App._facElegirFoto()" class="btn-primary tk-btn-nueva">' +
-          '📷 Subir factura</button>' +
+          '<i class="ph ph-camera" aria-hidden="true"></i> Subir factura</button>' +
       '</div></div>';
 
     // El input vive escondido en la página: el botón de arriba es el que se ve.
@@ -6968,9 +6975,9 @@ var App = {
     // ── La lista ──
     if (!lista.length) {
       html += '<div class="dx-panel"><div class="vacio-lluvia">' +
-        '<div class="vacio-ico">🧾</div>' +
+        '<div class="vacio-ico"><i class="ph ph-receipt" aria-hidden="true"></i></div>' +
         '<div class="vacio-t">No hay facturas de ' + App._facMesLargo(App._fac.mes) + '</div>' +
-        '<div class="vacio-s">Toma una foto de la factura con <b>📷 Subir factura</b>. ' +
+        '<div class="vacio-s">Toma una foto de la factura con <b><i class="ph ph-camera" aria-hidden="true"></i> Subir factura</b>. ' +
         'El sistema la lee y te muestra los datos para que los revises antes de guardarlos.<br><br>' +
         'Si la lectura no sale bien, el formulario se llena a mano y <b>la foto queda guardada igual</b>.</div>' +
       '</div></div>';
@@ -7002,7 +7009,7 @@ var App = {
       '</div>' +
       '<div class="fac-acc">' +
         (f.drive_url
-          ? '<a href="' + App._esc(f.drive_url) + '" target="_blank" rel="noopener" class="btn-fila">📷 Ver foto</a>'
+          ? '<a href="' + App._esc(f.drive_url) + '" target="_blank" rel="noopener" class="btn-fila"><i class="ph ph-camera" aria-hidden="true"></i> Ver foto</a>'
           : '') +
         '<button onclick="App._facEditar(\'' + f.id_factura + '\')" class="btn-fila">✎ Corregir</button>' +
         (f.estado === 'PENDIENTE'
@@ -7094,16 +7101,16 @@ var App = {
 
     var confianza = '';
     if (c.confianza === 'BAJA') {
-      confianza = '<div class="ph-aviso"><span>⚠</span><div>La foto se leía con dificultad. ' +
+      confianza = '<div class="ph-aviso"><span><i class="ph ph-warning" aria-hidden="true"></i></span><div>La foto se leía con dificultad. ' +
         '<b>Revisa cifra por cifra</b> contra el papel antes de guardar.</div></div>';
     } else if (avisoLectura) {
-      confianza = '<div class="ph-aviso"><span>⚠</span><div>No se pudo leer la factura sola: ' +
+      confianza = '<div class="ph-aviso"><span><i class="ph ph-warning" aria-hidden="true"></i></span><div>No se pudo leer la factura sola: ' +
         App._esc(avisoLectura) + '<br>La foto está guardada; escribe los datos a mano.</div></div>';
     }
 
     var html = '<div class="p-6">' +
       '<div class="flex items-center justify-between mb-1">' +
-        '<h2 class="text-lg font-bold">' + (idExistente ? '✎ Corregir la factura' : '🧾 Revisa lo que se leyó') + '</h2>' +
+        '<h2 class="text-lg font-bold">' + (idExistente ? '✎ Corregir la factura' : '<i class="ph ph-receipt" aria-hidden="true"></i> Revisa lo que se leyó') + '</h2>' +
         '<button onclick="App._facCerrar()" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>' +
       '</div>' +
       '<div class="text-sm mb-4" style="color:var(--muted)">' +
@@ -7114,7 +7121,7 @@ var App = {
         (urlFoto
           ? '<div class="fac-foto"><img src="' + App._esc(urlFoto) + '" alt="Foto de la factura">' +
             (sub && sub.drive_url
-              ? '<a href="' + App._esc(sub.drive_url) + '" target="_blank" rel="noopener" class="fac-foto-link">Abrirla en grande ↗</a>'
+              ? '<a href="' + App._esc(sub.drive_url) + '" target="_blank" rel="noopener" class="fac-foto-link">Abrirla en grande <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>'
               : '') + '</div>'
           : '') +
         '<div class="fac-campos">' +
@@ -7321,7 +7328,7 @@ var App = {
       animales.forEach(function(a) {
         var cl = a.clasificacion || 'SIN_DATOS';
         var ci = CLASIF_INFO[cl] || CLASIF_INFO['SIN_DATOS'];
-        var diasAlerta = a.diasSinMedir > 45 ? '<div class="text-xs text-red-500 font-semibold mt-1">📅 Sin medir ' + a.diasSinMedir + 'd</div>' : '';
+        var diasAlerta = a.diasSinMedir > 45 ? '<div class="text-xs text-red-500 font-semibold mt-1"><i class="ph ph-calendar" aria-hidden="true"></i> Sin medir ' + a.diasSinMedir + 'd</div>' : '';
         html += '<div class="sit-card ' + ci.bg + ' border-2 ' + ci.border + ' rounded-xl p-3 cursor-pointer hover:shadow-md transition-all" ' +
           'data-clasif="' + cl + '" data-predio="' + (a.predio||'') + '" data-prop="' + (a.propietario||'') + '" data-codigo="' + String(a.codigo) + '" ' +
           'onclick="App.irAnimal(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')">' +
@@ -7334,7 +7341,7 @@ var App = {
           (a.propietario ? '<div class="text-xs text-gray-400 truncate">' + a.propietario + '</div>' : '') +
           '<div class="mt-2 border-t border-white/60 pt-2">' +
             '<div class="text-sm font-bold text-gray-900">' + App.fmt(a.pesoActual, 1) + ' <span class="text-xs font-normal text-gray-500">kg</span></div>' +
-            '<div class="text-xs font-semibold" style="color:' + (a.ultimaGdp !== '' ? App.hexGdp(a.ultimaGdp) : 'var(--muted)') + '">' +
+            '<div class="text-xs font-semibold" style="color:' + (a.ultimaGdp !== '' ? App.textoGdp(a.ultimaGdp) : 'var(--muted)') + '">' +
               'GDP: ' + (a.ultimaGdp !== '' ? App.fmt(a.ultimaGdp, 3) + ' kg/d' : '—') +
             '</div>' +
           '</div>' +
@@ -7343,7 +7350,7 @@ var App = {
       });
       html += '</div>' +
         '<div id="sit-vacio" class="dx-panel" style="display:none">' +
-          '<div class="vacio-lluvia"><div class="vacio-ico">🔍</div>' +
+          '<div class="vacio-lluvia"><div class="vacio-ico"><i class="ph ph-magnifying-glass" aria-hidden="true"></i></div>' +
           '<div class="vacio-t">Ningún animal con ese filtro</div>' +
           '<div class="vacio-s">Prueba con otra finca, otro propietario, u otra clasificación.</div></div>' +
         '</div></div>';
@@ -7455,12 +7462,12 @@ var App = {
 
       // Tabs
       html += '<div class="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">' +
-        '<button id="tab-sal-peso" onclick="App._tabSalida(\'peso\')" class="tab-sal-btn px-5 py-2 rounded-lg text-sm font-semibold bg-white shadow text-green-700">⚖️ Por peso</button>' +
+        '<button id="tab-sal-peso" onclick="App._tabSalida(\'peso\')" class="tab-sal-btn px-5 py-2 rounded-lg text-sm font-semibold bg-white shadow text-green-700"><i class="ph ph-scales" aria-hidden="true"></i> Por peso</button>' +
         '<button id="tab-sal-vacas" onclick="App._tabSalida(\'vacas\')" class="tab-sal-btn px-5 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-700">' +
-          '🐄 Vacas' + (vacasAlerta > 0 ? ' <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 ml-1">' + vacasAlerta + '</span>' : '') +
+          '<i class="ph ph-cow" aria-hidden="true"></i> Vacas' + (vacasAlerta > 0 ? ' <span class="bg-amber-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 ml-1">' + vacasAlerta + '</span>' : '') +
         '</button>' +
         '<button id="tab-sal-desc" onclick="App._tabSalida(\'desc\')" class="tab-sal-btn px-5 py-2 rounded-lg text-sm font-semibold text-gray-500 hover:text-gray-700">' +
-          '✂️ Descarte' + (descarte.length > 0 ? ' <span class="bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 ml-1">' + descarte.length + '</span>' : '') +
+          '<i class="ph ph-scissors" aria-hidden="true"></i> Descarte' + (descarte.length > 0 ? ' <span class="bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 ml-1">' + descarte.length + '</span>' : '') +
         '</button>' +
       '</div>';
 
@@ -7469,16 +7476,16 @@ var App = {
 
       html += '<div class="bg-white rounded-xl border border-gray-200 p-5 flex flex-wrap items-center gap-4">' +
         '<div class="flex-1">' +
-          '<h2 class="text-lg font-bold text-gray-900">🎯 Animales con peso ≥ ' +
+          '<h2 class="text-lg font-bold text-gray-900"><i class="ph ph-target" aria-hidden="true"></i> Animales con peso ≥ ' +
             '<input type="number" id="umbral-kg" value="' + umbral + '" min="50" max="800" step="5" ' +
               'class="form-input w-24 inline-block text-center font-bold text-green-700 py-1 px-2" ' +
               'oninput="App._aplicarFiltroSalida()"> kg' +
           '</h2>' +
-          '<p class="text-sm text-gray-400 mt-1">Cambia el número para ajustar el criterio. Se actualiza instantáneamente. · Las vacas madres y las hembras <b>🤰 preñadas</b> no aparecen aquí: se analizan en la pestaña <b>🐄 Vacas</b>. Usa <b>🐄 A Vacas</b> para mandar una hembra al grupo a mano.</p>' +
+          '<p class="text-sm text-gray-400 mt-1">Cambia el número para ajustar el criterio. Se actualiza instantáneamente. · Las vacas madres y las hembras <b><i class="ph ph-baby" aria-hidden="true"></i> preñadas</b> no aparecen aquí: se analizan en la pestaña <b><i class="ph ph-cow" aria-hidden="true"></i> Vacas</b>. Usa <b><i class="ph ph-cow" aria-hidden="true"></i> A Vacas</b> para mandar una hembra al grupo a mano.</p>' +
           '<p class="text-sm mt-2" style="color:var(--muted)">Cada hembra muestra su estado: ' +
             '<span class="chip-repro vacia">✓ Vacía</span> palpada sin preñez · ' +
-            '<span class="chip-repro sinchequeo">❓ Sin chequeo</span> nunca palpada — <b>verificar antes de vender</b> · ' +
-            '<span class="chip-repro dudosa">❓ DUDOSA</span> palpación no concluyente.</p>' +
+            '<span class="chip-repro sinchequeo"><i class="ph ph-question" aria-hidden="true"></i> Sin chequeo</span> nunca palpada — <b>verificar antes de vender</b> · ' +
+            '<span class="chip-repro dudosa"><i class="ph ph-question" aria-hidden="true"></i> DUDOSA</span> palpación no concluyente.</p>' +
         '</div>' +
         '<div class="flex gap-6">' +
           '<div class="text-center"><div id="sal-cnt-num" class="text-2xl font-black text-green-700">—</div><div class="text-xs text-gray-500">animales</div></div>' +
@@ -7498,7 +7505,7 @@ var App = {
       '</div>';
 
       html += '<div id="sal-empty" class="hidden bg-white rounded-xl border border-gray-200 p-12 text-center">' +
-        '<div class="text-5xl mb-3">🐄</div>' +
+        '<div class="text-5xl mb-3"><i class="ph ph-cow" aria-hidden="true"></i></div>' +
         '<h3 class="text-lg font-semibold text-gray-700 mb-1">Ningún animal alcanza ese peso todavía</h3>' +
         '<p class="text-sm text-gray-400">Reduce el umbral de peso o registra más mediciones.</p>' +
       '</div>';
@@ -7516,17 +7523,17 @@ var App = {
         var peso     = parseFloat(a.pesoActual) || 0;
         var ganancia = peso - (parseFloat(a.pesoInicial) || 0);
         // El color sale de la escala unica, igual que en el resto de la app.
-        var gdpStyle = a.ultimaGdp !== '' ? ' style="color:' + App.hexGdp(a.ultimaGdp) + '"' : '';
+        var gdpStyle = a.ultimaGdp !== '' ? ' style="color:' + App.textoGdp(a.ultimaGdp) + '"' : '';
         // Estado reproductivo visible en cada HEMBRA de la lista de venta:
         // sólido = certeza (preñada), punteado = incertidumbre (dudosa / sin chequeo).
         var chipRepro = '', rowExtra = '';
         if (a.sexo === 'HEMBRA') {
           var er = a.estadoReproductivo || '';
-          if (er === 'Preñada')         { chipRepro = ' <span class="chip-repro prenada">🤰 PREÑADA</span>'; rowExtra = ' fila-prenada'; }
-          else if (er === 'Dudosa')     { chipRepro = ' <span class="chip-repro dudosa" title="Palpación no concluyente — podría estar preñada. Confirmar antes de vender.">❓ DUDOSA</span>'; rowExtra = ' fila-dudosa'; }
+          if (er === 'Preñada')         { chipRepro = ' <span class="chip-repro prenada"><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA</span>'; rowExtra = ' fila-prenada'; }
+          else if (er === 'Dudosa')     { chipRepro = ' <span class="chip-repro dudosa" title="Palpación no concluyente — podría estar preñada. Confirmar antes de vender."><i class="ph ph-question" aria-hidden="true"></i> DUDOSA</span>'; rowExtra = ' fila-dudosa'; }
           else if (er === 'No preñada') { chipRepro = ' <span class="chip-repro vacia" title="Palpada vacía — libre para venta.">✓ Vacía</span>'; }
-          else if (er === 'En celo')    { chipRepro = ' <span class="chip-repro vacia" title="En celo — libre para venta.">🔥 En celo</span>'; }
-          else                          { chipRepro = ' <span class="chip-repro sinchequeo" title="Hembra SIN palpación registrada — confirmar que no esté preñada antes de vender.">❓ Sin chequeo</span>'; }
+          else if (er === 'En celo')    { chipRepro = ' <span class="chip-repro vacia" title="En celo — libre para venta."><i class="ph ph-fire" aria-hidden="true"></i> En celo</span>'; }
+          else                          { chipRepro = ' <span class="chip-repro sinchequeo" title="Hembra SIN palpación registrada — confirmar que no esté preñada antes de vender."><i class="ph ph-question" aria-hidden="true"></i> Sin chequeo</span>'; }
         }
         html += '<tr class="fila-link sal-row' + rowExtra + '" ' +
           'data-peso="' + peso + '" ' +
@@ -7548,10 +7555,10 @@ var App = {
             (a.sexo === 'HEMBRA'
               ? '<button onclick="event.stopPropagation();App.moverAVacas(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" ' +
                   'class="btn-secondary text-xs px-2.5 py-1.5 whitespace-nowrap mr-1" ' +
-                  'title="Mandar al grupo 🐄 Vacas (reproductora). Dejará de aparecer para venta por peso.">🐄 A Vacas</button>'
+                  'title="Mandar al grupo Vacas (reproductora). Dejará de aparecer para venta por peso."><i class="ph ph-cow" aria-hidden="true"></i> A Vacas</button>'
               : '') +
             '<button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" ' +
-              'class="btn-primary text-xs px-3 py-1.5 whitespace-nowrap">💰 Vender</button>' +
+              'class="btn-primary text-xs px-3 py-1.5 whitespace-nowrap"><i class="ph ph-money" aria-hidden="true"></i> Vender</button>' +
           '</td>' +
         '</tr>';
       });
@@ -7562,14 +7569,14 @@ var App = {
       // ── Sección Vacas (madres) ────────────────────────────────────────────
       html += '<div id="sec-sal-vacas" class="space-y-4 hidden">';
       html += '<div class="bg-white rounded-xl border border-gray-200 p-5">' +
-        '<h2 class="text-lg font-bold text-gray-900">🐄 Vacas y reproductoras</h2>' +
-        '<p class="text-sm text-gray-400 mt-1">Aquí están las hembras que ya tuvieron crías, las que están <b>🤰 preñadas</b> (aunque sea su primer embarazo) y las que mandaste a mano. No se venden como el resto: primero se evalúa su productividad. ' +
-          'Una vaca <b>🤰 preñada</b> no es candidata aunque su último parto sea viejo. ' +
-          'La <span class="text-amber-600 font-semibold">⚠️ candidata a venta</span> es la que está <b>vacía</b> y lleva <b>' + (vacas[0] ? vacas[0].umbral : 13) + '+ meses sin parir</b>.</p>' +
+        '<h2 class="text-lg font-bold text-gray-900"><i class="ph ph-cow" aria-hidden="true"></i> Vacas y reproductoras</h2>' +
+        '<p class="text-sm text-gray-400 mt-1">Aquí están las hembras que ya tuvieron crías, las que están <b><i class="ph ph-baby" aria-hidden="true"></i> preñadas</b> (aunque sea su primer embarazo) y las que mandaste a mano. No se venden como el resto: primero se evalúa su productividad. ' +
+          'Una vaca <b><i class="ph ph-baby" aria-hidden="true"></i> preñada</b> no es candidata aunque su último parto sea viejo. ' +
+          'La <span class="text-amber-600 font-semibold"><i class="ph ph-warning" aria-hidden="true"></i> candidata a venta</span> es la que está <b>vacía</b> y lleva <b>' + (vacas[0] ? vacas[0].umbral : 13) + '+ meses sin parir</b>.</p>' +
       '</div>';
       if (vacas.length === 0) {
         html += '<div class="bg-white rounded-xl border border-gray-200 p-12 text-center">' +
-          '<div class="text-5xl mb-3">🐄</div>' +
+          '<div class="text-5xl mb-3"><i class="ph ph-cow" aria-hidden="true"></i></div>' +
           '<h3 class="text-lg font-semibold text-gray-700 mb-1">Aún no hay vacas con crías registradas</h3>' +
           '<p class="text-sm text-gray-400">Cuando registres nacimientos, las madres aparecerán aquí con su intervalo entre partos.</p>' +
         '</div>';
@@ -7592,22 +7599,22 @@ var App = {
             : '<span class="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">' + v.mesesSinParir + ' meses</span>';
           // Estado reproductivo proyectado a hoy — chips de estado reservados (ícono + texto, nunca color solo).
           var estadoRepro = v.estadoGestacion === 'PRENADA_OK'
-            ? '<span class="chip-repro prenada" title="Hembra preñada — NO es candidata a venta.">🤰 PREÑADA ~' + v.gestProyectada + ' m</span>'
+            ? '<span class="chip-repro prenada" title="Hembra preñada — NO es candidata a venta."><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA ~' + v.gestProyectada + ' m</span>'
             : v.estadoGestacion === 'GESTACION_VENCIDA'
-            ? '<span class="chip-repro vencida" title="Preñez que ya pasó el término: ¿ya parió? Registrar el nacimiento o re-palpar antes de vender.">🤰 VENCIDA ~' + v.gestProyectada + ' m</span>'
+            ? '<span class="chip-repro vencida" title="Preñez que ya pasó el término: ¿ya parió? Registrar el nacimiento o re-palpar antes de vender."><i class="ph ph-baby" aria-hidden="true"></i> VENCIDA ~' + v.gestProyectada + ' m</span>'
             : v.soloManual
-            ? '<span class="chip-repro manual" title="Mandada al grupo de vacas a mano.">🐄 Grupo manual</span>'
+            ? '<span class="chip-repro manual" title="Mandada al grupo de vacas a mano."><i class="ph ph-cow" aria-hidden="true"></i> Grupo manual</span>'
             : '<span class="chip-repro vacia">Vacía</span>';
           // Solo se puede devolver a venta la que entró únicamente por marcación manual.
           var btnQuitar = v.soloManual
-            ? '<button onclick="event.stopPropagation();App.quitarDeVacas(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-2.5 py-1.5 whitespace-nowrap mr-1" title="Quitarla del grupo de vacas. Volverá a aparecer para venta por peso.">↩ Quitar</button>'
+            ? '<button onclick="event.stopPropagation();App.quitarDeVacas(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-2.5 py-1.5 whitespace-nowrap mr-1" title="Quitarla del grupo de vacas. Volverá a aparecer para venta por peso."><i class="ph ph-arrow-u-up-left" aria-hidden="true"></i> Quitar</button>'
             : '';
           // El botón de venta cambia para preñadas: guarda visual + confirmación extra en el modal.
           var btnVender = esPren
-            ? '<button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-vender-guard" title="PREÑADA — el modal pedirá una confirmación adicional antes de permitir la venta.">🤰 Vender</button>'
-            : '<button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap">💰 Vender</button>';
+            ? '<button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-vender-guard" title="PREÑADA — el modal pedirá una confirmación adicional antes de permitir la venta."><i class="ph ph-baby" aria-hidden="true"></i> Vender</button>'
+            : '<button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')" class="btn-secondary text-xs px-3 py-1.5 whitespace-nowrap"><i class="ph ph-money" aria-hidden="true"></i> Vender</button>';
           html += '<tr class="fila-link' + (esPren ? ' fila-prenada' : '') + '" onclick="App.irAnimal(\'' + String(v.codigo).replace(/'/g, "\\'") + '\')">' +
-            '<td class="font-bold text-gray-900">' + v.codigo + (esPren ? ' <span title="Preñada — no vender">🤰</span>' : (v.alerta ? ' <span title="Candidata a venta por bajo rendimiento reproductivo">⚠️</span>' : '')) + '</td>' +
+            '<td class="font-bold text-gray-900">' + v.codigo + (esPren ? ' <span title="Preñada — no vender"><i class="ph ph-baby" aria-hidden="true"></i></span>' : (v.alerta ? ' <span title="Candidata a venta por bajo rendimiento reproductivo"><i class="ph ph-warning" aria-hidden="true"></i></span>' : '')) + '</td>' +
             '<td>' + (v.predio || '—') + '</td>' +
             '<td>' + (v.propietario || '—') + '</td>' +
             '<td class="text-center font-semibold">' + v.partos + '</td>' +
@@ -7626,7 +7633,7 @@ var App = {
       html += '<div id="sec-sal-desc" class="space-y-4 hidden">';
       if (descarte.length === 0) {
         html += '<div class="bg-white rounded-xl border border-gray-200 p-12 text-center">' +
-          '<div class="text-5xl mb-3">✂️</div>' +
+          '<div class="text-5xl mb-3"><i class="ph ph-scissors" aria-hidden="true"></i></div>' +
           '<h3 class="text-lg font-semibold text-gray-700 mb-1">Sin animales marcados para descarte</h3>' +
           '<p class="text-sm text-gray-400">Cuando marques un animal para descarte desde su ficha, aparecerá aquí.</p>' +
         '</div>';
@@ -7639,14 +7646,14 @@ var App = {
         descarte.forEach(function(a) {
           var peso     = parseFloat(a.pesoActual) || 0;
           // El color sale de la escala unica, igual que en el resto de la app.
-          var gdpStyle = a.ultimaGdp !== '' ? ' style="color:' + App.hexGdp(a.ultimaGdp) + '"' : '';
+          var gdpStyle = a.ultimaGdp !== '' ? ' style="color:' + App.textoGdp(a.ultimaGdp) + '"' : '';
           // Una preñada marcada para descarte también debe gritar su estado antes de venderse.
           var vrD = mapaVaca[a.codigo];
           var esPrenD = (a.estadoReproductivo === 'Preñada') ||
             (vrD && (vrD.estadoGestacion === 'PRENADA_OK' || vrD.estadoGestacion === 'GESTACION_VENCIDA'));
           html += '<tr class="fila-link' + (esPrenD ? ' fila-prenada' : '') + '" onclick="App.irAnimal(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')">' +
             '<td class="font-bold text-gray-900">' + a.codigo +
-              (esPrenD ? ' <span class="chip-repro prenada" title="Hembra preñada — verificar antes de vender.">🤰 PREÑADA</span>' : '') + '</td>' +
+              (esPrenD ? ' <span class="chip-repro prenada" title="Hembra preñada — verificar antes de vender."><i class="ph ph-baby" aria-hidden="true"></i> PREÑADA</span>' : '') + '</td>' +
             '<td>' + (a.tipo||'—') + '</td>' +
             '<td>' + (a.predio||'—') + '</td>' +
             '<td>' + (a.propietario||'—') + '</td>' +
@@ -7656,7 +7663,7 @@ var App = {
             '<td class="text-gray-400 text-xs">' + (a.fechaDescarte ? App.fmtFecha(a.fechaDescarte) : '—') + '</td>' +
             '<td class="text-gray-500 text-xs max-w-xs truncate">' + (a.obsDescarte || '—') + '</td>' +
             '<td><button onclick="event.stopPropagation();App.abrirModalVenta(\'' + String(a.codigo).replace(/'/g, "\\'") + '\')" ' +
-              'class="bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs px-3 py-1.5 font-medium whitespace-nowrap">💰 Vender</button></td>' +
+              'class="bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs px-3 py-1.5 font-medium whitespace-nowrap"><i class="ph ph-money" aria-hidden="true"></i> Vender</button></td>' +
           '</tr>';
         });
         html += '</tbody></table></div></div>';
@@ -7671,17 +7678,17 @@ var App = {
     });
   },
 
-  // Manda una hembra de "Por peso" al grupo 🐄 Vacas (reproductora). Tras guardar,
+  // Manda una hembra de "Por peso" al grupo <i class="ph ph-cow" aria-hidden="true"></i> Vacas (reproductora). Tras guardar,
   // recarga la vista quedándose en la pestaña Vacas para confirmar el movimiento.
   moverAVacas: function(codigo) {
     App.api('marcarEnVacas', [codigo, true], function(r) {
       if (!r || !r.ok) { App.toast((r && r.error) || 'No se pudo mover.', 'error'); return; }
-      App.toast(codigo + ' movida al grupo 🐄 Vacas. Ya no aparece para venta por peso.', 'success');
+      App.toast(codigo + ' movida al grupo Vacas. Ya no aparece para venta por peso.', 'success');
       App.vistaSalida('vacas');
     });
   },
 
-  // Quita una hembra del grupo 🐄 Vacas (solo aplica a las que entraron a mano).
+  // Quita una hembra del grupo <i class="ph ph-cow" aria-hidden="true"></i> Vacas (solo aplica a las que entraron a mano).
   // Vuelve a aparecer para venta por peso. Recarga quedándose en la pestaña Por peso.
   quitarDeVacas: function(codigo) {
     App.api('marcarEnVacas', [codigo, false], function(r) {
