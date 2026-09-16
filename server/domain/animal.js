@@ -473,7 +473,7 @@ function getOpcionesAnimal() {
 // ════════════════════════════════════════════════════════════════════════
 //  Fotos de animales — almacenadas en una carpeta de Drive
 // ════════════════════════════════════════════════════════════════════════
-var FOTOS_FOLDER_NAME = 'GanaX - Fotos de Animales';
+var FOTOS_FOLDER_NAME = 'Gestión Ganadera - Fotos de Animales';
 
 // Devuelve (creándola si no existe) la carpeta de Drive donde se guardan las fotos.
 function _getCarpetaFotos() {

@@ -18,6 +18,7 @@ const state = {
   demo: new URLSearchParams(location.search).has("demo"),
   session: null,
   org: null,
+  memberships: [],
   account: null,
   started: false,
   booting: false,
@@ -42,8 +43,22 @@ const date = (v) =>
         timeZone: "America/Bogota",
       }).format(new Date(v))
     : "—";
+const dateKey = (value = new Date()) => {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Bogota",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    })
+      .formatToParts(value)
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 const icon = (name) => `<i class="ph ph-${name}" aria-hidden="true"></i>`;
-const brand = `<a class="wordmark" href="/" aria-label="GanaX, inicio"><span class="brand-mark">G</span>Gana<span>X</span></a>`;
+const brand = `<a class="wordmark" href="/" aria-label="Gestión Ganadera, inicio"><span class="brand-mark">G</span>Gestión <span>Ganadera</span></a>`;
 
 async function request(fn, args = []) {
   if (!state.demo) {
@@ -87,7 +102,7 @@ function authScreen(mode = "login") {
   const signup = mode === "registro",
     recover = mode === "recuperar",
     reset = mode === "nueva-clave";
-  root.innerHTML = `<nav class="site-nav">${brand}<a class="text-link" href="/">Volver al inicio</a></nav><main class="auth-layout"><div class="auth-intro"><p class="lead-in">Tu próximo paso en el campo.</p><h1>${signup ? "Dale un lugar<br>a tu ganadería." : recover || reset ? "Recupera<br>tu acceso." : "Qué bueno<br>verte de nuevo."}</h1><p>Toda la historia de tu finca, lista para continuar.</p><a class="text-link" href="/?demo=1">Explorar la demostración ${icon("arrow-up-right")}</a></div><section class="auth-card"><h2>${signup ? "Crear una cuenta" : recover ? "Recuperar contraseña" : reset ? "Nueva contraseña" : "Ingresar a GanaX"}</h2><p>${signup ? "Prueba la plataforma durante 14 días. Sin tarjeta." : recover ? "Te enviaremos un enlace para recuperar tu acceso." : reset ? "Elige una contraseña de al menos 10 caracteres." : "Usa el correo de tu cuenta."}</p><form id="auth-form">${signup ? '<label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? '<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com"></label>' : ""}${!recover ? `<label>Contraseña<input name="password" type="password" required minlength="${signup || reset ? 10 : 1}" autocomplete="${signup || reset ? "new-password" : "current-password"}" ${signup || reset ? 'placeholder="Mínimo 10 caracteres"' : ""}></label>` : ""}<p class="form-notice" id="auth-notice" role="status" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button></form>${!sb ? '<p class="form-notice is-error">El registro está pendiente de configuración. La demostración sí está disponible.</p>' : ""}<div class="auth-links">${mode === "login" ? '<a href="#recuperar">Olvidé mi contraseña</a><span>¿Primera vez? <a href="#registro">Crear cuenta</a></span>' : '<a href="#login">Volver a ingresar</a>'}</div></section></main>`;
+  root.innerHTML = `<nav class="site-nav">${brand}<a class="text-link" href="/">Volver al inicio</a></nav><main class="auth-layout"><div class="auth-intro"><p class="lead-in">Tu próximo paso en el campo.</p><h1>${signup ? "Dale un lugar<br>a tu ganadería." : recover || reset ? "Recupera<br>tu acceso." : "Qué bueno<br>verte de nuevo."}</h1><p>Toda la historia de tu finca, lista para continuar.</p><a class="text-link" href="/?demo=1">Explorar la demostración ${icon("arrow-up-right")}</a></div><section class="auth-card"><h2>${signup ? "Crear una cuenta" : recover ? "Recuperar contraseña" : reset ? "Nueva contraseña" : "Ingresar a Gestión Ganadera"}</h2><p>${signup ? "Prueba la plataforma durante 14 días. Sin tarjeta." : recover ? "Te enviaremos un enlace para recuperar tu acceso." : reset ? "Elige una contraseña de al menos 10 caracteres." : "Usa el correo de tu cuenta."}</p><form id="auth-form">${signup ? '<label>Tu nombre<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ej. María Pérez"></label><label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? '<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com"></label>' : ""}${!recover ? `<label>Contraseña<input name="password" type="password" required minlength="${signup || reset ? 10 : 1}" autocomplete="${signup || reset ? "new-password" : "current-password"}" ${signup || reset ? 'placeholder="Mínimo 10 caracteres"' : ""}></label>` : ""}<p class="form-notice" id="auth-notice" role="status" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button></form>${!sb ? '<p class="form-notice is-error">El registro está pendiente de configuración. La demostración sí está disponible.</p>' : ""}<div class="auth-links">${mode === "login" ? '<a href="#recuperar">Olvidé mi contraseña</a><span>¿Primera vez? <a href="#registro">Crear cuenta</a></span>' : '<a href="#login">Volver a ingresar</a>'}</div></section></main>`;
   document.getElementById("auth-form").onsubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget,
@@ -103,7 +118,10 @@ function authScreen(mode = "login") {
           email: values.email,
           password: values.password,
           options: {
-            data: { farm_name: values.farm },
+            data: {
+              farm_name: values.farm,
+              display_name: values.displayName,
+            },
             emailRedirectTo: location.origin + "/#login",
           },
         });
@@ -182,15 +200,19 @@ async function bootApp() {
     try {
       const { data: members, error } = await sb
         .from("miembros")
-        .select("organizacion_id")
+        .select("organizacion_id,rol,organizaciones(nombre)")
         .eq("user_id", state.session.user.id)
         .order("organizacion_id");
       if (error) throw error;
+      state.memberships = members || [];
+      const savedOrg = localStorage.getItem("gestion-ganadera-org");
       state.org =
-        members?.[0]?.organizacion_id ||
-        (await request("crearGanaderia", [
-          state.session.user.user_metadata.farm_name || "Mi ganadería",
-        ]));
+        state.memberships.find((member) => member.organizacion_id === savedOrg)
+          ?.organizacion_id ||
+        state.memberships.find((member) => member.rol === "owner")
+          ?.organizacion_id ||
+        state.memberships[0]?.organizacion_id ||
+        (await request("crearGanaderia"));
       state.account = await request("cuenta");
     } catch (e) {
       state.booting = false;
@@ -214,23 +236,23 @@ async function bootApp() {
   banner.innerHTML = state.demo
     ? `<span>${icon("flask")} Demostración · Todos los datos son ficticios</span><a href="/#registro">Crear mi cuenta ${icon("arrow-right")}</a>`
     : `<span>${icon("barn")} ${esc(name)}</span><a href="#/cuenta">${state.account.subscription.estado === "trialing" ? "Prueba hasta " + date(state.account.subscription.trial_ends_at) : "Mi plan"} ${icon("arrow-right")}</a>`;
-  window.GanaXLogin = {
+  window.GestionGanaderaLogin = {
     salir: async () => {
       if (sb && !state.demo) await sb.auth.signOut();
       location.href = "/";
     },
   };
-  window.GanaXTheme = {
+  window.GestionGanaderaTheme = {
     toggle: () => {
       const theme =
         document.documentElement.dataset.theme === "light" ? "dark" : "light";
       document.documentElement.dataset.theme = theme;
-      localStorage.setItem("ganax-theme", theme);
+      localStorage.setItem("gestion-ganadera-theme", theme);
       App.rutear();
     },
   };
   document.documentElement.dataset.theme =
-    localStorage.getItem("ganax-theme") || "light";
+    localStorage.getItem("gestion-ganadera-theme") || "light";
   App.api = (fn, args, success, failure) => {
     state.pending++;
     App.mostrarLoading();
@@ -423,9 +445,29 @@ async function accountView() {
       past_due: "Pago pendiente",
       canceled: "Suscripción cancelada",
     }[sub.estado];
+    const organizationPicker =
+      state.memberships.length > 1
+        ? `<section class="surface"><h2>Tus ganaderías</h2><p class="quiet">Elige el espacio que quieres consultar.</p><label>Ganadería activa<select id="organization-picker">${state.memberships
+            .map(
+              (member) =>
+                `<option value="${esc(member.organizacion_id)}" ${member.organizacion_id === state.org ? "selected" : ""}>${esc(member.organizaciones?.nombre || member.organizacion_id)} · ${member.rol === "owner" ? "propietario" : member.rol === "editor" ? "edición" : "consulta"}</option>`,
+            )
+            .join("")}</select></label></section>`
+        : "";
+    const teamSection =
+      account.role === "owner"
+        ? `<section class="surface"><h2>Equipo</h2><p class="quiet">La persona debe crear primero su cuenta con el mismo correo. Después podrá elegir esta ganadería desde su cuenta.</p><form id="team-form"><label>Correo de la persona<input name="email" type="email" required maxlength="320" autocomplete="email" placeholder="persona@correo.com"></label><label>Tipo de acceso<select name="role"><option value="editor">Puede registrar y editar</option><option value="viewer">Solo consulta</option></select></label><button class="button primary">Agregar al equipo ${icon("arrow-right")}</button><p id="team-notice" class="form-notice" role="status" hidden></p></form></section>`
+        : "";
+    const profileSection = `<section class="surface"><h2>Tu perfil</h2><form id="profile-form"><label>Nombre para mostrar<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" value="${esc(account.profile.nombre_mostrar)}"></label><button class="button primary">Guardar nombre ${icon("arrow-right")}</button><p id="profile-notice" class="form-notice" role="status" hidden></p></form></section>`;
     App.renderMain(
-      `<div class="dashboard-heading"><div><p class="view-date">Mi cuenta</p><h1>${esc(account.organization.nombre)}</h1><p>${esc(account.email)}</p></div><button id="export-data" class="button secondary">${icon("download-simple")} Exportar datos</button></div><div class="account-grid"><section class="surface"><h2>Tu plan</h2><span class="status-pill">${status}</span><h3 class="plan-name">${esc(account.plans.find((p) => p.id === sub.plan_id)?.nombre)}</h3><p>${sub.estado === "trialing" ? "Prueba hasta " + date(sub.trial_ends_at) : "Vigencia hasta " + date(sub.current_period_end)}</p><p class="quiet">Al finalizar la vigencia puedes consultar y exportar tus datos. Los nuevos registros requieren un plan activo.</p><form id="plan-form"><label>Solicitar un plan<select name="plan"><option value="esencial">Esencial · hasta 250 animales</option><option value="profesional">Profesional · hasta 1.000 animales</option></select></label><button class="button primary" ${account.role !== "owner" ? "disabled" : ""}>Solicitar información ${icon("arrow-right")}</button><p class="quiet">Los precios y el cobro se anunciarán próximamente. Esta solicitud no genera cargos.</p><p id="plan-notice" class="form-notice" role="status" ${account.request ? "" : "hidden"}>${account.request ? "Solicitud registrada: " + esc(account.request.plan_id) : ""}</p></form></section><section class="surface"><h2>Cuéntanos qué necesitas</h2><p class="quiet">Tu solicitud quedará registrada para que el equipo de soporte pueda revisarla.</p><form id="support-form"><label>Asunto<input name="subject" required minlength="3" maxlength="150" placeholder="¿Con qué necesitas ayuda?"></label><label>Mensaje<textarea name="message" required minlength="10" maxlength="5000" rows="4" placeholder="Describe lo que ocurrió o lo que necesitas."></textarea></label><button class="button primary">Registrar solicitud ${icon("arrow-right")}</button><p id="support-notice" class="form-notice" role="status" hidden></p></form></section></div><section class="surface"><h2>Solicitudes de soporte</h2>${account.tickets.length ? account.tickets.map((t) => `<div class="ticket-row"><div><strong>${esc(t.asunto)}</strong><p class="quiet">${date(t.created_at)}</p></div><span class="status-pill">${esc(t.estado.replace("_", " "))}</span></div>`).join("") : '<p class="quiet">Todavía no has registrado solicitudes.</p>'}</section>`,
+      `<div class="dashboard-heading"><div><p class="view-date">Mi cuenta</p><h1>${esc(account.organization.nombre)}</h1><p>${esc(account.profile.nombre_mostrar)} · ${esc(account.profile.correo)}</p></div><button id="export-data" class="button secondary">${icon("download-simple")} Exportar datos</button></div>${organizationPicker}<div class="account-grid"><section class="surface"><h2>Tu plan</h2><span class="status-pill">${status}</span><h3 class="plan-name">${esc(account.plans.find((p) => p.id === sub.plan_id)?.nombre)}</h3><p>${sub.estado === "trialing" ? "Prueba hasta " + date(sub.trial_ends_at) : "Vigencia hasta " + date(sub.current_period_end)}</p><p class="quiet">Al finalizar la vigencia puedes consultar y exportar tus datos. Los nuevos registros requieren un plan activo.</p><form id="plan-form"><label>Solicitar un plan<select name="plan"><option value="esencial">Esencial · hasta 250 animales</option><option value="profesional">Profesional · hasta 1.000 animales</option></select></label><button class="button primary" ${account.role !== "owner" ? "disabled" : ""}>Solicitar información ${icon("arrow-right")}</button><p class="quiet">Los precios y el cobro se anunciarán próximamente. Esta solicitud no genera cargos.</p><p id="plan-notice" class="form-notice" role="status" ${account.request ? "" : "hidden"}>${account.request ? "Solicitud registrada: " + esc(account.request.plan_id) : ""}</p></form></section>${profileSection}<section class="surface"><h2>Cuéntanos qué necesitas</h2><p class="quiet">Tu solicitud quedará registrada para que el equipo de soporte pueda revisarla.</p><form id="support-form"><label>Asunto<input name="subject" required minlength="3" maxlength="150" placeholder="¿Con qué necesitas ayuda?"></label><label>Mensaje<textarea name="message" required minlength="10" maxlength="5000" rows="4" placeholder="Describe lo que ocurrió o lo que necesitas."></textarea></label><button class="button primary">Registrar solicitud ${icon("arrow-right")}</button><p id="support-notice" class="form-notice" role="status" hidden></p></form></section>${teamSection}</div><section class="surface"><h2>Solicitudes de soporte</h2>${account.tickets.length ? account.tickets.map((t) => `<div class="ticket-row"><div><strong>${esc(t.asunto)}</strong><p class="quiet">${date(t.created_at)}</p></div><span class="status-pill">${esc(t.estado.replace("_", " "))}</span></div>`).join("") : '<p class="quiet">Todavía no has registrado solicitudes.</p>'}</section>`,
     );
+    const picker = document.getElementById("organization-picker");
+    if (picker)
+      picker.onchange = () => {
+        localStorage.setItem("gestion-ganadera-org", picker.value);
+        location.reload();
+      };
     document.getElementById("plan-form").onsubmit = (e) =>
       submitForm(e, "plan-notice", async (f) => {
         await request("solicitarPlan", [f.get("plan")]);
@@ -436,6 +478,21 @@ async function accountView() {
         await request("crearTicket", [f.get("subject"), f.get("message")]);
         return "Tu solicitud quedó registrada.";
       });
+    document.getElementById("profile-form").onsubmit = (e) =>
+      submitForm(e, "profile-notice", async (f) => {
+        const displayName = f.get("displayName");
+        await request("actualizarPerfil", [displayName]);
+        account.profile.nombre_mostrar = displayName;
+        return "Tu nombre quedó actualizado.";
+      });
+    const teamForm = document.getElementById("team-form");
+    if (teamForm)
+      teamForm.onsubmit = (e) =>
+        submitForm(e, "team-notice", async (f) => {
+          await request("invitarMiembro", [f.get("email"), f.get("role")]);
+          teamForm.reset();
+          return "La persona ya tiene acceso a esta ganadería.";
+        });
     document.getElementById("export-data").onclick = async (e) => {
       e.target.disabled = true;
       try {
@@ -447,8 +504,7 @@ async function accountView() {
           }),
         );
         a.href = u;
-        a.download =
-          "ganax-respaldo-" + new Date().toISOString().slice(0, 10) + ".json";
+        a.download = "gestion-ganadera-respaldo-" + dateKey() + ".json";
         a.click();
         setTimeout(() => URL.revokeObjectURL(u), 1000);
       } catch (err) {

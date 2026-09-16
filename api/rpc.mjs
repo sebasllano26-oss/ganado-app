@@ -32,12 +32,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Solicitud inválida" });
     if (demo === true) {
       if (!readOnly.has(fn))
-        return res
-          .status(403)
-          .json({
-            error:
-              "La demostración es de consulta. Crea tu cuenta para registrar datos.",
-          });
+        return res.status(403).json({
+          error:
+            "La demostración es de consulta. Crea tu cuenta para registrar datos.",
+        });
       return res.json({ data: createRuntime(demoData()).call(fn, args) });
     }
     const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
@@ -45,12 +43,10 @@ export default async function handler(req, res) {
       process.env.SUPABASE_PUBLISHABLE_KEY ||
       process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     if (!url || !key)
-      return res
-        .status(503)
-        .json({
-          error:
-            "La conexión del servicio está pendiente. Puedes explorar la demostración.",
-        });
+      return res.status(503).json({
+        error:
+          "La conexión del servicio está pendiente. Puedes explorar la demostración.",
+      });
     const auth = req.headers.authorization;
     if (!auth?.startsWith("Bearer "))
       return res.status(401).json({ error: "Inicia sesión para continuar." });
@@ -67,8 +63,12 @@ export default async function handler(req, res) {
         .status(401)
         .json({ error: "Tu sesión venció. Ingresa de nuevo." });
     if (fn === "crearGanaderia") {
-      const nombre = validateText(args[0], 100).trim();
-      if (nombre.length < 2) throw Error("Escribe el nombre de tu ganadería.");
+      const nombre =
+        args[0] == null || args[0] === ""
+          ? null
+          : validateText(args[0], 100).trim();
+      if (nombre != null && nombre.length < 2)
+        throw Error("Escribe el nombre de tu ganadería.");
       const { data, error } = await sb.rpc("crear_ganaderia", { nombre });
       if (error) throw error;
       return res.json({ data });
@@ -105,6 +105,13 @@ export default async function handler(req, res) {
           .select("*")
           .eq("organizacion_id", org)
           .maybeSingle(),
+        sb
+          .from("perfiles")
+          .select(
+            "user_id,correo,nombre_mostrar,ganaderia_solicitada,creado_el,actualizado_el",
+          )
+          .eq("user_id", user.id)
+          .single(),
       ]);
       for (const x of results) if (x.error) throw x.error;
       return res.json({
@@ -114,10 +121,33 @@ export default async function handler(req, res) {
           plans: results[2].data,
           tickets: results[3].data,
           request: results[4].data,
+          profile: results[5].data,
           role: member.rol,
           email: user.email,
         },
       });
+    }
+    if (fn === "invitarMiembro") {
+      const correo = validateText(args[0], 320).trim();
+      const rol = args[1];
+      if (!correo || !["editor", "viewer"].includes(rol))
+        throw Error("Escribe el correo y elige el tipo de acceso.");
+      const { data, error } = await sb.rpc("invitar_miembro", {
+        org,
+        correo,
+        nuevo_rol: rol,
+      });
+      if (error) throw error;
+      return res.json({ data: { ok: true, userId: data } });
+    }
+    if (fn === "actualizarPerfil") {
+      const nombre = validateText(args[0], 100).trim();
+      if (nombre.length < 2) throw Error("Escribe tu nombre completo.");
+      const { error } = await sb.rpc("actualizar_perfil", {
+        nombre_mostrar: nombre,
+      });
+      if (error) throw error;
+      return res.json({ data: { ok: true } });
     }
     if (fn === "solicitarPlan" || fn === "crearTicket") {
       const { data, error } = await sb.rpc(
@@ -230,7 +260,10 @@ export default async function handler(req, res) {
     }
     return res.json({ data: await sign(result) });
   } catch (e) {
-    console.error("GanaX operation failed:", e.code || e.name || "Error");
+    console.error(
+      "La operación de Gestión Ganadera falló:",
+      e.code || e.name || "Error",
+    );
     const message = e.message || "No pudimos completar la operación.";
     const conflict = e.code === "40001";
     const safe = conflict

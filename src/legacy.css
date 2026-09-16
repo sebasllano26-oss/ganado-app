@@ -430,7 +430,7 @@ input[type="checkbox"],input[type="radio"]{ accent-color:var(--accent); }
 .login-music-btn.is-on{ border-color:oklch(78% .15 148 / .55);color:oklch(88% .13 148); }
 
 /* ════════════════ DASHBOARD EJECUTIVO (dx-) ════════════════
-   Hallmark · redesign: app-view (dashboard) · system-managed: tokens GanaX (este archivo)
+   Hallmark · redesign: app-view (dashboard) · system-managed: tokens del producto
    dataviz: paleta categórica fija --c-* sin reciclar · semáforo GDP reservado a estado
    layout: 5 KPIs → 2 filas de 3 paneles → conclusiones+tabla → agenda → comparativo */
 .dx-wrap{ display:flex;flex-direction:column;gap:16px; }

@@ -1,10 +1,10 @@
-# GanaX — interfaz compartida
+# Gestión Ganadera — interfaz compartida
 
 Una herramienta sobria para propietarios y equipos ganaderos. Género utilitario; la portada explica el producto y la aplicación prioriza los registros.
 
 ## Identidad
 
-GanaX se conserva como marca del prototipo. Fraunces aparece en encabezados de presentación y Geist en controles, contenido y cifras. Los colores se concentran en verde bosque, papel cálido y superficies claras. El modo oscuro reutiliza los mismos roles.
+Gestión Ganadera usa un nombre descriptivo y neutral. Fraunces aparece en encabezados de presentación y Geist en controles, contenido y cifras. Los colores se concentran en verde bosque, papel cálido y superficies claras. El modo oscuro reutiliza los mismos roles.
 
 ## Composición
 

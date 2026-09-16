@@ -1,16 +1,12 @@
-import { schemas } from "./runtime.mjs";
+import { dateFormat, schemas } from "./runtime.mjs";
 export function demoData(now = new Date()) {
   const data = Object.fromEntries(Object.keys(schemas).map((k) => [k, []]));
   const date = (days) =>
-    new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate() - days,
-      ),
-    )
-      .toISOString()
-      .slice(0, 10);
+    dateFormat(
+      new Date(now.getTime() - days * 86_400_000),
+      "America/Bogota",
+      "yyyy-MM-dd",
+    );
   const predios = ["El Porvenir", "La Esperanza"];
   data.predios = predios.map((nombre, i) => ({
     id_predio: "PRE-" + i,
@@ -47,7 +43,7 @@ export function demoData(now = new Date()) {
       propietario: "Ganadería de demostración",
       tipo_ingreso: "COMPRA",
       proveedor: "Proveedor de ejemplo",
-      indicaciones: "Registro ficticio para explorar GanaX",
+      indicaciones: "Registro ficticio para explorar Gestión Ganadera",
       estado_reproductivo: i % 4 === 0 ? "Preñada" : "",
       fecha_nacimiento: date(700),
       meses: 6,

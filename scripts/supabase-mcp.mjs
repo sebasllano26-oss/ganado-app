@@ -32,7 +32,7 @@ const timer = setTimeout(() => {
 }, 90000);
 try {
   await call("initialize", {
-    clientInfo: { name: "ganax-setup", version: "1.0.0" },
+    clientInfo: { name: "gestion-ganadera-setup", version: "1.0.0" },
     capabilities: { experimentalApi: true },
   });
   child.stdin.write(

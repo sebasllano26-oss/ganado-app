@@ -9,7 +9,7 @@
 >
   <div class="sidebar-brand">
     <span class="brand-mark" aria-hidden="true">G</span>
-    <span class="bw">Gana<span class="x">X</span></span>
+    <span class="bw">Gestión Ganadera</span>
   </div>
 
   <nav class="flex-1 py-2 overflow-y-auto">
@@ -51,7 +51,7 @@
   </nav>
 
   <button
-    onclick="GanaXLogin.salir()"
+    onclick="GestionGanaderaLogin.salir()"
     class="sidebar-action"
     style="
       margin: 2px 10px 10px;
@@ -62,7 +62,9 @@
   >
     <i class="ph ph-sign-out"></i> Cerrar sesión
   </button>
-  <div class="sidebar-foot">GanaX Cloud · <span id="footer-fecha"></span></div>
+  <div class="sidebar-foot">
+    Gestión Ganadera · <span id="footer-fecha"></span>
+  </div>
 </div>
 
 <!-- ══════════ CONTENIDO PRINCIPAL ══════════ -->
@@ -83,7 +85,7 @@
       <div id="topbar-filters" class="flex gap-2"></div>
       <button
         id="theme-toggle"
-        onclick="GanaXTheme.toggle()"
+        onclick="GestionGanaderaTheme.toggle()"
         title="Cambiar tema (claro / oscuro)"
         class="topbar-icon-btn"
       >

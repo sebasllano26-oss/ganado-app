@@ -66,7 +66,7 @@ function _carpetaFacturas(mes) {
     try { raiz = DriveApp.getFolderById(idRaiz); } catch (e) { raiz = null; }
   }
   if (!raiz) {
-    raiz = DriveApp.createFolder('GanaX — Facturas');
+    raiz = DriveApp.createFolder('Gestión Ganadera — Facturas');
     _segProps().setProperty('CARPETA_FACTURAS_ID', raiz.getId());
   }
   if (!mes) return raiz;

@@ -124,7 +124,7 @@ function _notificarNuevoEvento(animal, evento) {
     var htmlBody =
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto">' +
         '<div style="background:#14532d;padding:22px 24px;border-radius:10px 10px 0 0">' +
-          '<p style="color:#86efac;margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em">GanaX</p>' +
+          '<p style="color:#86efac;margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em">Gestión Ganadera</p>' +
           '<h2 style="color:#fff;margin:0;font-size:20px">💉 Evento sanitario registrado</h2>' +
         '</div>' +
         '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;padding:24px;border-radius:0 0 10px 10px">' +
@@ -136,7 +136,7 @@ function _notificarNuevoEvento(animal, evento) {
                'style="background:#15803d;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600">' +
               'Ver ficha del animal →' +
             '</a></div>' : '') +
-          '<p style="margin:20px 0 0;font-size:11px;color:#9ca3af;text-align:center">Mensaje automático — GanaX</p>' +
+          '<p style="margin:20px 0 0;font-size:11px;color:#9ca3af;text-align:center">Mensaje automático — Gestión Ganadera</p>' +
         '</div>' +
       '</div>';
 

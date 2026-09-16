@@ -36,4 +36,6 @@ http
       await handler(req, res);
     } else vite.middlewares(req, res);
   })
-  .listen(5173, "127.0.0.1", () => console.log("GanaX: http://127.0.0.1:5173"));
+  .listen(5173, "127.0.0.1", () =>
+    console.log("Gestión Ganadera: http://127.0.0.1:5173"),
+  );
