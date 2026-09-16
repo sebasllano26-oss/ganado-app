@@ -20,8 +20,29 @@ test("commercial page, signup and mobile widths", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "Crear una cuenta" }),
   ).toBeVisible();
+  await page.screenshot({ path: ".local/signup.png", fullPage: true });
   expect(errors).toEqual([]);
 });
+
+test("expired confirmation links offer a clear resend path", async ({
+  page,
+}) => {
+  await page.goto(
+    "/#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired",
+  );
+  await expect(
+    page.getByRole("heading", { name: "Este enlace ya venció" }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Correo electrónico")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Enviar otro enlace/ }),
+  ).toBeVisible();
+  await expect(page.locator(".auth-reassurance")).toContainText(
+    "El nuevo enlace llegará al correo de tu cuenta",
+  );
+  await page.screenshot({ path: ".local/auth-expired.png", fullPage: true });
+});
+
 test("demo routes render, metrics are real and mutations are blocked", async ({
   page,
 }) => {

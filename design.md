@@ -6,12 +6,16 @@ Una herramienta sobria para propietarios y equipos ganaderos. Género utilitario
 
 Gestión Ganadera usa un nombre descriptivo y neutral. Fraunces aparece en encabezados de presentación y Geist en controles, contenido y cifras. Los colores se concentran en verde bosque, papel cálido y superficies claras. El modo oscuro reutiliza los mismos roles.
 
+La dirección operativa toma como referencia el sistema entregado en `desing/`: verde bosque profundo, tarjetas tonales, jerarquía numérica visible, bordes definidos y controles grandes para uso en campo. Los prototipos fuente se conservan como material local de referencia y no forman parte del paquete de producción.
+
 ## Composición
 
 - Portada: texto a la izquierda, ilustración de campo y muestra identificada a la derecha; funciones como filas y planes comparables.
 - Aplicación: navegación lateral, contexto de la ganadería, resumen numérico, gráficos y tablas.
-- Formularios: etiquetas visibles, errores cerca del campo, botones deshabilitados durante envíos y foco visible.
+- Formularios: etiquetas visibles, campos de al menos 52 px, controles para mostrar la contraseña, errores cerca del campo, botones deshabilitados durante envíos y foco visible.
 - Móvil: menú lateral plegable, secciones apiladas y tablas con desplazamiento dentro de su contenedor.
+
+El registro explica sus tres pasos —cuenta, confirmación y entrada— y ofrece recuperación directa cuando un enlace de correo vence.
 
 ## Tokens
 

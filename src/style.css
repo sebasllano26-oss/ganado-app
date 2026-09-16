@@ -85,15 +85,15 @@ textarea:focus-visible {
   justify-content: center;
   gap: 12px;
   padding: 13px 20px;
-  min-height: 46px;
-  border-radius: var(--radius-sm);
+  min-height: 48px;
+  border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 600;
   border: 1px solid transparent;
   line-height: 1.3;
 }
 .primary {
-  background: var(--color-accent);
+  background: var(--color-accent-strong);
   color: var(--color-on-accent);
 }
 .primary:hover {
@@ -149,7 +149,7 @@ textarea:focus-visible {
   letter-spacing: -0.07em;
 }
 .site-nav {
-  height: 100px;
+  height: 88px;
   max-width: 1300px;
   padding: 0 48px;
   margin: auto;
@@ -212,7 +212,7 @@ textarea:focus-visible {
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-md);
   overflow: hidden;
-  transform: rotate(1deg);
+  box-shadow: var(--shadow-soft);
 }
 .art-heading {
   display: flex;
@@ -414,29 +414,120 @@ textarea:focus-visible {
 }
 .auth-layout {
   max-width: 1200px;
-  margin: 72px auto;
+  min-height: calc(100vh - 136px);
+  margin: 24px auto;
   padding: 0 48px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
   gap: 80px;
   align-items: center;
 }
+.auth-intro {
+  min-height: 610px;
+  padding: 56px;
+  border-radius: 24px;
+  color: var(--color-on-accent);
+  background:
+    radial-gradient(
+      circle at 82% 16%,
+      rgba(223, 242, 232, 0.2) 0 7%,
+      transparent 7.4%
+    ),
+    linear-gradient(150deg, var(--color-accent-strong), #1b513b);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  position: relative;
+}
+.auth-intro::after {
+  content: "";
+  position: absolute;
+  width: 620px;
+  height: 260px;
+  left: -80px;
+  bottom: -170px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  transform: rotate(-8deg);
+}
+.auth-intro .lead-in,
+.auth-intro .text-link {
+  color: #bfe8d3;
+}
 .auth-intro h1 {
-  font-size: clamp(3rem, 5vw, 4.8rem);
+  max-width: 620px;
+  font-size: clamp(3rem, 5vw, 4.6rem);
 }
 .auth-intro > p:not(.lead-in) {
   margin: 28px 0;
   color: var(--color-ink-2);
 }
+.auth-intro > div > p:not(.lead-in) {
+  max-width: 500px;
+  margin: 28px 0;
+  color: rgba(255, 255, 255, 0.76);
+  line-height: 1.75;
+}
+.auth-field-note {
+  width: min(420px, 100%);
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+}
+.auth-field-note > span {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.12);
+  font-size: 20px;
+}
+.auth-field-note strong,
+.auth-field-note small {
+  display: block;
+}
+.auth-field-note small {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.45;
+}
 .auth-card {
   background: var(--color-surface);
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-md);
-  padding: 36px;
+  padding: 40px;
+  box-shadow: var(--shadow-soft);
+}
+.auth-card-mark {
+  width: 46px;
+  height: 46px;
+  margin-bottom: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--color-soft);
+  color: var(--color-accent-strong);
+  font-size: 22px;
+}
+.auth-eyebrow {
+  margin-bottom: 8px !important;
+  color: var(--color-accent) !important;
+  font-size: 0.72rem !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .auth-card h2 {
   font-family: var(--font-display);
-  font-size: 1.8rem;
+  font-size: 2rem;
   font-weight: 500;
   margin-bottom: 10px;
 }
@@ -457,13 +548,119 @@ label select,
 label textarea {
   display: block;
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 15px;
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-sm);
-  background: var(--color-paper);
+  background: var(--color-surface);
   color: var(--color-ink);
   margin-top: 8px;
   min-width: 0;
+  min-height: 52px;
+  transition:
+    border-color var(--dur-short) var(--ease-out),
+    box-shadow var(--dur-short) var(--ease-out);
+}
+label input:hover,
+label select:hover,
+label textarea:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 45%, var(--color-rule));
+}
+label input:focus,
+label select:focus,
+label textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-soft) 82%, transparent);
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-ink);
+  box-shadow: 0 0 0 1000px var(--color-surface) inset;
+  transition: background-color 9999s ease-out;
+}
+.password-field {
+  position: relative;
+  margin-top: 8px;
+}
+.password-field input {
+  margin-top: 0;
+  padding-right: 52px;
+}
+.password-field button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--color-ink-2);
+}
+.password-field button:hover {
+  background: var(--color-surface-low);
+  color: var(--color-ink);
+}
+.field-help {
+  display: block;
+  margin-top: 7px;
+  color: var(--color-ink-2);
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+.auth-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0 0 24px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--color-surface-low);
+  color: var(--color-ink-2);
+  font-size: 0.67rem;
+  text-align: center;
+}
+.auth-steps span {
+  padding: 7px 4px;
+  border-radius: 7px;
+}
+.auth-steps .is-current {
+  background: var(--color-surface);
+  color: var(--color-accent-strong);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(24, 47, 35, 0.08);
+}
+.confirmation-state {
+  padding: 24px;
+  border-radius: 14px;
+  background: var(--color-surface-low);
+  text-align: center;
+}
+.confirmation-state > i {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--color-accent);
+  font-size: 36px;
+}
+.confirmation-state > .ph-circle-notch {
+  animation: auth-spin 1s linear infinite;
+}
+.confirmation-state p {
+  margin: 0 0 18px;
+  color: var(--color-ink-2);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+.auth-reassurance {
+  margin-top: 14px;
+  color: var(--color-ink-2);
+  font-size: 0.72rem;
+  line-height: 1.55;
+  text-align: center;
+}
+@keyframes auth-spin {
+  to {
+    transform: rotate(1turn);
+  }
 }
 label textarea {
   resize: vertical;
@@ -520,12 +717,12 @@ label textarea {
   --r-xl: 16px;
 }
 .workspace #sidebar {
-  width: 232px !important;
-  background: var(--color-surface) !important;
+  width: 264px !important;
+  background: var(--color-surface-low) !important;
   border-right: 1px solid var(--color-rule);
 }
 .workspace .ml-64 {
-  margin-left: 232px;
+  margin-left: 264px;
 }
 .workspace .sidebar-brand {
   padding: 28px 24px !important;
@@ -534,24 +731,26 @@ label textarea {
 }
 .workspace .sidebar-brand .bw {
   font-family: var(--font-body);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 600;
-  letter-spacing: -1px;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
 }
 .workspace .sidebar-brand .x {
   color: var(--color-accent);
 }
 .workspace .nav-link {
-  border-radius: 6px !important;
+  border-radius: 12px !important;
   margin: 3px 12px !important;
-  font-size: 13px !important;
-  min-height: 42px;
+  padding-left: 16px !important;
+  font-size: 14px !important;
+  min-height: 46px;
   color: var(--color-ink-2) !important;
   border-left: 0 !important;
 }
 .workspace .nav-link.active {
-  background: var(--color-soft) !important;
-  color: var(--color-accent) !important;
+  background: var(--color-accent-strong) !important;
+  color: var(--color-on-accent) !important;
   font-weight: 600;
 }
 .workspace .nav-section {
@@ -562,7 +761,8 @@ label textarea {
   color: var(--color-ink-2);
 }
 .workspace header {
-  background: var(--color-paper);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--color-rule);
   height: 72px;
   padding: 0 32px;
@@ -572,7 +772,7 @@ label textarea {
   font-weight: 500;
 }
 .workspace #app-main {
-  padding: 28px 32px;
+  padding: 32px;
   max-width: 1600px;
   width: 100%;
   margin: 0 auto;
@@ -583,7 +783,7 @@ label textarea {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 32px;
-  background: var(--color-soft);
+  background: color-mix(in srgb, var(--color-soft) 82%, var(--color-surface));
   color: var(--color-accent);
   font-size: 11px;
 }
@@ -624,20 +824,40 @@ label textarea {
 .metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid var(--color-rule);
-  border-bottom: 1px solid var(--color-rule);
-  padding: 24px 0;
+  gap: 16px;
+  padding: 0;
   margin-bottom: 28px;
 }
 .metrics > div {
-  padding: 0 24px;
-  border-left: 1px solid var(--color-rule);
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid
+    color-mix(in srgb, var(--color-accent) 10%, var(--color-rule));
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 4px 18px rgba(24, 47, 35, 0.04);
 }
 .metrics > div:first-child {
-  padding-left: 0;
-  border-left: 0;
+  padding-left: 20px;
 }
-.metrics span,
+.metric-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.metric-top i {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--color-surface-low);
+  color: var(--color-accent);
+  font-size: 18px;
+}
+.metric-top span,
 .metrics > div > small {
   display: block;
   color: var(--color-ink-2);
@@ -647,7 +867,7 @@ label textarea {
   font-family: var(--font-body);
   font-size: 38px;
   letter-spacing: -0.045em;
-  font-weight: 500;
+  font-weight: 600;
   display: block;
   margin: 8px 0;
 }
@@ -668,6 +888,7 @@ label textarea {
   border: 1px solid var(--color-rule);
   border-radius: var(--radius-md);
   padding: 24px;
+  box-shadow: 0 5px 22px rgba(24, 47, 35, 0.045);
 }
 .surface h2 {
   font-family: var(--font-body);
@@ -751,10 +972,13 @@ label textarea {
 .clean-table th {
   text-align: left;
   color: var(--color-ink-2);
-  font-weight: 400;
+  font-weight: 600;
   padding: 14px 12px;
   border-bottom: 1px solid var(--color-rule);
   font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.045em;
+  background: var(--color-surface-low);
 }
 .clean-table td {
   padding: 18px 12px;
@@ -777,7 +1001,8 @@ label textarea {
   background: var(--color-soft);
   color: var(--color-accent);
   font-size: 10px;
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-accent) 16%, transparent);
+  border-radius: 7px;
   padding: 5px 8px;
 }
 .account-grid {
@@ -843,9 +1068,10 @@ label textarea {
   font-size: 0.9rem;
 }
 .workspace .btn-primary {
-  background: var(--color-accent) !important;
+  min-height: 44px;
+  background: var(--color-accent-strong) !important;
   color: var(--color-on-accent) !important;
-  border-radius: 6px !important;
+  border-radius: 11px !important;
   white-space: nowrap;
 }
 .workspace #modal-box {
@@ -963,8 +1189,7 @@ label textarea {
     row-gap: 24px;
   }
   .metrics > div:nth-child(3) {
-    padding-left: 0;
-    border-left: 0;
+    padding-left: 20px;
   }
   .account-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -1011,7 +1236,19 @@ label textarea {
     font-size: 1.9rem;
   }
   .metrics strong {
-    font-size: 34px;
+    font-size: 32px;
+  }
+  .metrics {
+    gap: 12px;
+  }
+  .metrics > div,
+  .metrics > div:first-child,
+  .metrics > div:nth-child(3) {
+    padding: 16px;
+  }
+  .metric-top i {
+    width: 30px;
+    height: 30px;
   }
   .surface {
     padding: 20px;
@@ -1088,6 +1325,7 @@ label textarea {
   .auth-layout {
     padding: 0 16px;
     margin-top: 24px;
+    min-height: auto;
   }
   .art-data strong {
     font-size: 2.4rem;
@@ -1114,6 +1352,37 @@ label textarea {
   .clean-table-wrap {
     margin-left: -8px;
     margin-right: -8px;
+  }
+}
+@media (max-width: 480px) {
+  .site-nav .wordmark {
+    font-size: 1.12rem;
+    letter-spacing: -0.04em;
+  }
+  .site-nav .brand-mark {
+    width: 32px;
+    height: 32px;
+    margin-right: 7px;
+    font-size: 21px;
+  }
+  .site-nav > .text-link {
+    font-size: 0.72rem;
+  }
+  .auth-card {
+    padding: 22px 18px;
+  }
+  .auth-card h2 {
+    font-size: 1.7rem;
+  }
+  .metrics strong {
+    font-size: clamp(1.65rem, 9vw, 2.05rem);
+  }
+  .metric-top span {
+    font-size: 10px;
+    line-height: 1.35;
+  }
+  .metric-top i {
+    display: none;
   }
 }
 @media (prefers-reduced-motion: reduce) {

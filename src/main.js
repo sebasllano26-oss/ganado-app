@@ -14,6 +14,11 @@ const root = document.getElementById("root");
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 const sb = url && key ? createClient(url, key) : null;
+const pendingEmailKey = "gestion-ganadera-pending-email";
+let authCallbackPending =
+  /(?:[?#&])(?:access_token|refresh_token|code|token_hash)=/.test(
+    location.href,
+  );
 const state = {
   demo: new URLSearchParams(location.search).has("demo"),
   session: null,
@@ -88,6 +93,46 @@ function alertText(el, message, error = false) {
   el.hidden = false;
 }
 
+function authUrlParams() {
+  const params = new URLSearchParams(location.search);
+  const hash = location.hash.slice(1);
+  if (hash.includes("=")) {
+    new URLSearchParams(hash).forEach((value, name) => params.set(name, value));
+  }
+  return params;
+}
+
+function hasAuthCallback() {
+  const params = authUrlParams();
+  return ["access_token", "refresh_token", "code", "token_hash"].some((key) =>
+    params.has(key),
+  );
+}
+
+function authIssue() {
+  const params = authUrlParams();
+  const code = params.get("error_code");
+  if (!code && !params.get("error")) return null;
+  return {
+    code,
+    description:
+      params.get("error_description") || "No pudimos validar el enlace.",
+  };
+}
+
+function authErrorMessage(error) {
+  const message = error?.message || "No pudimos completar la solicitud.";
+  if (/email rate limit/i.test(message))
+    return "Espera un momento antes de solicitar otro correo.";
+  if (/invalid login credentials/i.test(message))
+    return "El correo o la contraseña no coinciden.";
+  if (/user already registered/i.test(message))
+    return "Este correo ya tiene una cuenta. Ingresa o solicita una nueva confirmación.";
+  if (/password should be at least/i.test(message))
+    return "La contraseña debe tener al menos 10 caracteres.";
+  return message;
+}
+
 function landing() {
   document.body.className = "marketing";
   root.innerHTML = `<nav class="site-nav">${brand}<div class="site-links"><a href="#funciones">La plataforma</a><a href="#planes">Planes</a></div><a class="button secondary" href="#login">Ingresar ${icon("arrow-up-right")}</a></nav>
@@ -97,13 +142,74 @@ function landing() {
  <section id="planes" class="plans-section"><div class="section-heading"><h2>Un espacio para<br>cada ganadería.</h2><p>Empieza con 14 días de prueba y hasta 100 animales activos. Los planes comerciales estarán disponibles próximamente.</p></div><div class="plan-table"><div class="plan-row"><div><h3>Esencial</h3><p>Para llevar el control diario de tu finca.</p></div><span>Hasta 250 animales</span><span class="quiet">Precio por anunciar</span><a class="text-link" href="#registro">Empezar prueba ${icon("arrow-right")}</a></div><div class="plan-row"><div><h3>Profesional</h3><p>Más capacidad para una operación en crecimiento.</p></div><span>Hasta 1.000 animales</span><span class="quiet">Precio por anunciar</span><a class="text-link" href="#registro">Empezar prueba ${icon("arrow-right")}</a></div></div><p class="quiet">No se realizan cobros automáticos. Tus datos siguen disponibles para consulta y exportación al finalizar la prueba.</p></section></main>
  <footer class="site-footer">${brand}<span>Hecho para el trabajo del campo.</span><a href="#login">Acceder a mi ganadería ${icon("arrow-right")}</a></footer>`;
 }
-function authScreen(mode = "login") {
+function authScreen(mode = "login", context = {}) {
   document.body.className = "marketing";
   const signup = mode === "registro",
     recover = mode === "recuperar",
-    reset = mode === "nueva-clave";
-  root.innerHTML = `<nav class="site-nav">${brand}<a class="text-link" href="/">Volver al inicio</a></nav><main class="auth-layout"><div class="auth-intro"><p class="lead-in">Tu próximo paso en el campo.</p><h1>${signup ? "Dale un lugar<br>a tu ganadería." : recover || reset ? "Recupera<br>tu acceso." : "Qué bueno<br>verte de nuevo."}</h1><p>Toda la historia de tu finca, lista para continuar.</p><a class="text-link" href="/?demo=1">Explorar la demostración ${icon("arrow-up-right")}</a></div><section class="auth-card"><h2>${signup ? "Crear una cuenta" : recover ? "Recuperar contraseña" : reset ? "Nueva contraseña" : "Ingresar a Gestión Ganadera"}</h2><p>${signup ? "Prueba la plataforma durante 14 días. Sin tarjeta." : recover ? "Te enviaremos un enlace para recuperar tu acceso." : reset ? "Elige una contraseña de al menos 10 caracteres." : "Usa el correo de tu cuenta."}</p><form id="auth-form">${signup ? '<label>Tu nombre<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ej. María Pérez"></label><label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? '<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com"></label>' : ""}${!recover ? `<label>Contraseña<input name="password" type="password" required minlength="${signup || reset ? 10 : 1}" autocomplete="${signup || reset ? "new-password" : "current-password"}" ${signup || reset ? 'placeholder="Mínimo 10 caracteres"' : ""}></label>` : ""}<p class="form-notice" id="auth-notice" role="status" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button></form>${!sb ? '<p class="form-notice is-error">El registro está pendiente de configuración. La demostración sí está disponible.</p>' : ""}<div class="auth-links">${mode === "login" ? '<a href="#recuperar">Olvidé mi contraseña</a><span>¿Primera vez? <a href="#registro">Crear cuenta</a></span>' : '<a href="#login">Volver a ingresar</a>'}</div></section></main>`;
-  document.getElementById("auth-form").onsubmit = async (e) => {
+    reset = mode === "nueva-clave",
+    resend = mode === "reenviar-confirmacion",
+    confirmation = mode === "confirmar",
+    confirming = mode === "confirmando";
+  const pendingEmail =
+    context.email || localStorage.getItem(pendingEmailKey) || "";
+  const expired = context.issue?.code === "otp_expired";
+  const cardTitle = signup
+    ? "Crear una cuenta"
+    : recover
+      ? "Recuperar contraseña"
+      : reset
+        ? "Nueva contraseña"
+        : resend
+          ? expired
+            ? "Este enlace ya venció"
+            : "Reenviar confirmación"
+          : confirmation
+            ? "Confirma tu correo"
+            : confirming
+              ? "Confirmando tu cuenta"
+              : "Ingresar a Gestión Ganadera";
+  const cardCopy = signup
+    ? "Empieza con 14 días para organizar tu hato y tu operación."
+    : recover
+      ? "Te enviaremos un enlace seguro para recuperar tu acceso."
+      : reset
+        ? "Elige una contraseña de al menos 10 caracteres."
+        : resend
+          ? expired
+            ? "Los enlaces de seguridad son temporales. Escribe tu correo y te enviaremos uno nuevo."
+            : "Escribe el correo con el que creaste tu cuenta."
+          : confirmation
+            ? `Enviamos un enlace a <strong>${esc(pendingEmail)}</strong>. Ábrelo para activar tu cuenta.`
+            : confirming
+              ? "Estamos validando el enlace y preparando tu ganadería."
+              : "Usa el correo de tu cuenta para continuar.";
+  const introTitle = signup
+    ? "Tu operación,<br>en un solo lugar."
+    : recover || reset || resend
+      ? "Recupera<br>tu acceso."
+      : "El campo sigue.<br>Tú también.";
+  const passwordField = `<label>Contraseña<div class="password-field"><input name="password" type="password" required minlength="${signup || reset ? 10 : 1}" autocomplete="${signup || reset ? "new-password" : "current-password"}" ${signup || reset ? 'placeholder="Mínimo 10 caracteres" aria-describedby="password-help"' : ""}><button type="button" data-toggle-password aria-label="Mostrar contraseña">${icon("eye")}</button></div>${signup || reset ? '<small id="password-help" class="field-help">Usa 10 caracteres o más.</small>' : ""}</label>`;
+  const authForm = confirmation
+    ? `<div class="confirmation-state">${icon("envelope-simple-open")}<p>Si no lo ves, revisa correo no deseado o solicita un enlace nuevo.</p><a class="button secondary wide" href="#reenviar-confirmacion">Enviar otro enlace</a></div>`
+    : confirming
+      ? `<div class="confirmation-state" role="status">${icon("circle-notch")}<p>Este proceso puede tardar unos segundos.</p></div>`
+      : `<form id="auth-form">${signup ? '<div class="auth-steps" aria-label="Proceso de creación"><span class="is-current">1. Cuenta</span><span>2. Confirma</span><span>3. Empieza</span></div><label>Tu nombre<input name="displayName" required minlength="2" maxlength="100" autocomplete="name" placeholder="Ej. María Pérez"></label><label>Nombre de tu ganadería<input name="farm" required minlength="2" maxlength="100" autocomplete="organization" placeholder="Ej. Ganadería El Porvenir"></label>' : ""}${!reset ? `<label>Correo electrónico<input name="email" type="email" required autocomplete="email" placeholder="tu@correo.com" value="${esc(pendingEmail)}"></label>` : ""}${!recover && !resend ? passwordField : ""}<p class="form-notice" id="auth-notice" role="status" aria-live="polite" hidden></p><button class="button primary wide" ${!sb ? "disabled" : ""}>${signup ? "Crear cuenta" : recover ? "Enviar enlace" : resend ? "Enviar otro enlace" : reset ? "Guardar contraseña" : "Ingresar"} ${icon("arrow-right")}</button>${resend ? '<p class="auth-reassurance">El nuevo enlace llegará al correo de tu cuenta y abrirá esta aplicación.</p>' : ""}</form>`;
+  root.innerHTML = `<nav class="site-nav">${brand}<a class="text-link" href="/">Volver al inicio</a></nav><main class="auth-layout"><div class="auth-intro"><div><p class="lead-in">Gestión segura, desde cualquier lugar.</p><h1>${introTitle}</h1><p>Tus animales, pesajes, sanidad y tareas quedan conectados a una cuenta protegida.</p><a class="text-link" href="/?demo=1">Explorar la demostración ${icon("arrow-up-right")}</a></div><div class="auth-field-note"><span>${icon("shield-check")}</span><div><strong>Información protegida</strong><small>Cada ganadería conserva su propio espacio de trabajo.</small></div></div></div><section class="auth-card"><div class="auth-card-mark">${icon(resend ? "envelope" : signup ? "barn" : "cow")}</div><p class="auth-eyebrow">${resend ? "Confirmación de cuenta" : signup ? "Nueva ganadería" : "Acceso a tu espacio"}</p><h2>${cardTitle}</h2><p>${cardCopy}</p>${authForm}${!sb && !confirmation && !confirming ? '<p class="form-notice is-error">El acceso está pendiente de configuración. La demostración sí está disponible.</p>' : ""}<div class="auth-links">${mode === "login" ? '<a href="#recuperar">Olvidé mi contraseña</a><span>¿Primera vez? <a href="#registro">Crear cuenta</a></span>' : confirmation ? '<a href="#login">Ya confirmé mi correo</a>' : confirming ? "" : '<a href="#login">Volver a ingresar</a>'}</div></section></main>`;
+  document.querySelectorAll("[data-toggle-password]").forEach((toggle) => {
+    toggle.onclick = () => {
+      const input = toggle.previousElementSibling;
+      const showing = input.type === "text";
+      input.type = showing ? "password" : "text";
+      toggle.setAttribute(
+        "aria-label",
+        showing ? "Mostrar contraseña" : "Ocultar contraseña",
+      );
+      toggle.innerHTML = icon(showing ? "eye" : "eye-slash");
+    };
+  });
+  const authFormElement = document.getElementById("auth-form");
+  if (!authFormElement) return;
+  authFormElement.onsubmit = async (e) => {
     e.preventDefault();
     const form = e.currentTarget,
       button = form.querySelector("button"),
@@ -122,12 +228,18 @@ function authScreen(mode = "login") {
               farm_name: values.farm,
               display_name: values.displayName,
             },
-            emailRedirectTo: location.origin + "/#login",
+            emailRedirectTo: location.origin + "/",
           },
         });
       else if (recover)
         result = await sb.auth.resetPasswordForEmail(values.email, {
-          redirectTo: location.origin + "/#nueva-clave",
+          redirectTo: location.origin + "/",
+        });
+      else if (resend)
+        result = await sb.auth.resend({
+          type: "signup",
+          email: values.email,
+          options: { emailRedirectTo: location.origin + "/" },
         });
       else if (reset)
         result = await sb.auth.updateUser({ password: values.password });
@@ -144,29 +256,26 @@ function authScreen(mode = "login") {
         );
         return;
       }
+      if (resend) {
+        localStorage.setItem(pendingEmailKey, values.email);
+        alertText(notice, "Listo. Revisa tu correo para confirmar la cuenta.");
+        return;
+      }
       if (reset) {
         alertText(notice, "Contraseña actualizada. Ya puedes ingresar.");
         location.hash = "#login";
         return;
       }
       if (signup && !result.data.session) {
-        alertText(
-          notice,
-          "Revisa tu correo y confirma tu cuenta para empezar.",
-        );
+        localStorage.setItem(pendingEmailKey, values.email);
+        authScreen("confirmar", { email: values.email });
         return;
       }
       state.session = result.data.session;
       location.hash = "#/";
       await bootApp();
     } catch (error) {
-      alertText(
-        notice,
-        error.message === "Invalid login credentials"
-          ? "El correo o la contraseña no coinciden."
-          : error.message,
-        true,
-      );
+      alertText(notice, authErrorMessage(error), true);
     } finally {
       button.disabled = false;
       button.removeAttribute("aria-busy");
@@ -358,7 +467,7 @@ function dashboard() {
       ? "Así se ve una finca en orden."
       : state.account.organization.nombre;
     App.renderMain(`<div class="dashboard-heading"><div><p class="view-date">${new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long" }).format(new Date())}</p><h1>${esc(title)}</h1><p>Una mirada al hato y a lo que sigue.</p></div><a class="button secondary" href="#/tareas">Ver tareas ${icon("arrow-right")}</a></div>
-  <section class="metrics"><div><span>Animales activos</span><strong>${num(active.length)}</strong><small>En tu inventario actual</small></div><div><span>Peso promedio medido</span><strong>${values.length ? num(values.reduce((a, b) => a + b, 0) / values.length, 1) : "—"} <small>kg</small></strong><small>Último pesaje registrado</small></div><div><span>Ganancia diaria</span><strong>${avg === null ? "—" : num(avg, 2)} <small>kg/día</small></strong><small>Promedio de registros válidos</small></div><div><span>Predios con ganado</span><strong>${Object.keys(groups).length}</strong><small>Ubicaciones del hato activo</small></div></section>
+  <section class="metrics" aria-label="Indicadores principales"><div><div class="metric-top"><span>Animales activos</span>${icon("cow")}</div><strong>${num(active.length)}</strong><small>En tu inventario actual</small></div><div><div class="metric-top"><span>Peso promedio</span>${icon("scales")}</div><strong>${values.length ? num(values.reduce((a, b) => a + b, 0) / values.length, 1) : "—"} <small>kg</small></strong><small>Último pesaje registrado</small></div><div><div class="metric-top"><span>Ganancia diaria</span>${icon("trend-up")}</div><strong>${avg === null ? "—" : num(avg, 2)} <small>kg/día</small></strong><small>Promedio de registros válidos</small></div><div><div class="metric-top"><span>Predios con ganado</span>${icon("map-pin-area")}</div><strong>${Object.keys(groups).length}</strong><small>Ubicaciones del hato activo</small></div></section>
   <div class="overview-grid"><section class="surface growth-panel"><div class="panel-heading"><h2>El crecimiento del hato</h2><a href="#/planeacion" class="text-link">Planeación ${icon("arrow-up-right")}</a></div><p class="quiet">Promedio de peso registrado por mes · kg</p><div class="growth-chart"><canvas id="growth-chart" aria-label="Evolución del peso promedio" role="img"></canvas><p id="chart-empty" hidden>Aún no hay pesajes. Registra el primero desde la ficha de un animal.</p></div></section><section class="surface distribution"><h2>Tu hato, por predio</h2><div class="distribution-list">${
     Object.entries(groups)
       .map(
@@ -537,7 +646,21 @@ async function submitForm(e, id, action) {
 function route() {
   if (state.started) return;
   const hash = location.hash;
-  if (["#login", "#registro", "#recuperar", "#nueva-clave"].includes(hash))
+  const issue = authIssue();
+  if (issue) {
+    authScreen("reenviar-confirmacion", { issue });
+  } else if (hasAuthCallback()) {
+    authCallbackPending = true;
+    authScreen("confirmando");
+  } else if (
+    [
+      "#login",
+      "#registro",
+      "#recuperar",
+      "#nueva-clave",
+      "#reenviar-confirmacion",
+    ].includes(hash)
+  )
     authScreen(hash.slice(1));
   else if (state.demo || hash.startsWith("#/")) bootApp();
   else landing();
@@ -549,6 +672,13 @@ if (sb)
     if (event === "PASSWORD_RECOVERY") {
       state.started = false;
       authScreen("nueva-clave");
+    }
+    if (event === "SIGNED_IN" && (authCallbackPending || hasAuthCallback())) {
+      authCallbackPending = false;
+      localStorage.removeItem(pendingEmailKey);
+      history.replaceState(null, "", location.pathname + "#/");
+      state.started = false;
+      bootApp();
     }
     if (event === "SIGNED_OUT" && state.started && !state.demo)
       location.href = "/";
