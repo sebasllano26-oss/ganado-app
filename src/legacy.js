@@ -4891,8 +4891,19 @@ var App = {
         '<input type="text" id="f_predio_nueva" class="form-input mt-2" placeholder="Nombre de la nueva finca…" style="display:none" oninput="document.getElementById(\'f_predio\').value=this.value">' +
         '<p class="form-hint">Cambia la finca cuando el animal sea trasladado a otro predio.</p></div>';
 
+      var propietarioActual = animal ? (animal.propietario || '') : '';
+      var propietariosDisponibles = (opts.propietarios || []).slice();
+      if (propietarioActual && propietariosDisponibles.indexOf(propietarioActual) < 0) {
+        propietariosDisponibles.push(propietarioActual);
+      }
       form += '<div class="form-group"><label class="form-label">Propietario</label>' +
-        '<select id="f_propietario" class="form-input">' + selectOpts(opts.propietarios||[], animal ? animal.propietario : '', '— Seleccionar —') + '</select></div>';
+        '<input type="hidden" id="f_propietario" value="' + App._esc(propietarioActual) + '">' +
+        '<select id="f_propietario_sel" class="form-input" onchange="App._onCambioPropietario(this)">' +
+          selectOpts(propietariosDisponibles, propietarioActual, '— Seleccionar propietario —') +
+          '<option value="__nuevo__">➕ Escribir nuevo propietario…</option>' +
+        '</select>' +
+        '<input type="text" id="f_propietario_nuevo" class="form-input mt-2" placeholder="Nombre de la persona o empresa…" maxlength="200" style="display:none" oninput="document.getElementById(\'f_propietario\').value=this.value">' +
+        '<p class="form-hint">Puedes elegir uno existente o registrar uno nuevo.</p></div>';
 
       form += '<div class="form-group"><label class="form-label" id="lbl_fecha">Fecha de ingreso *</label>' +
         '<input type="date" id="f_fecha_ingreso" value="' + (animal ? animal.fecha_ingreso : hoy) + '" class="form-input">' +
@@ -5216,6 +5227,18 @@ var App = {
       if (hidden) hidden.value = '';
     } else {
       if (nueva) nueva.style.display = 'none';
+      if (hidden) hidden.value = sel.value;
+    }
+  },
+
+  _onCambioPropietario: function(sel) {
+    var hidden = document.getElementById('f_propietario');
+    var nuevo  = document.getElementById('f_propietario_nuevo');
+    if (sel.value === '__nuevo__') {
+      if (nuevo) { nuevo.style.display = 'block'; nuevo.focus(); }
+      if (hidden) hidden.value = '';
+    } else {
+      if (nuevo) { nuevo.style.display = 'none'; nuevo.value = ''; }
       if (hidden) hidden.value = sel.value;
     }
   },

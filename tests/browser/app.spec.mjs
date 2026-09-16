@@ -54,6 +54,17 @@ test("demo routes render, metrics are real and mutations are blocked", async ({
   ).toBeVisible();
   await expect(page.locator(".metrics")).toContainText("26");
   await expect(page.locator(".metrics")).not.toContainText("—");
+  await page.getByRole("button", { name: "Nuevo animal" }).click();
+  await expect(
+    page.getByRole("heading", { name: "🐄 Registrar nuevo animal" }),
+  ).toBeVisible();
+  await page.locator("#f_propietario_sel").selectOption("__nuevo__");
+  await expect(page.locator("#f_propietario_nuevo")).toBeVisible();
+  await page.locator("#f_propietario_nuevo").fill("Ganadería La Colina");
+  await expect(page.locator("#f_propietario")).toHaveValue(
+    "Ganadería La Colina",
+  );
+  await page.getByRole("button", { name: "Cancelar" }).click();
   await page.screenshot({ path: ".local/dashboard.png", fullPage: true });
   for (const route of [
     "animales",

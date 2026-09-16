@@ -39,6 +39,33 @@ test("same-day measurement is rejected and unknown functions are inaccessible", 
   assert.throws(() => rt.call("getAll", ["animales"]));
   assert.throws(() => rt.call("constructor", []));
 });
+test("saving an animal keeps a new owner available in the catalog", () => {
+  const rt = createRuntime(demoData());
+  const result = rt.call("saveAnimal", [
+    {
+      codigo: "OWNER-001",
+      tipo_ingreso: "COMPRA",
+      tipo: "TERNERO",
+      predio: "El Retiro",
+      propietario: "Ganadería La Colina",
+      fecha_ingreso: "2026-09-16",
+      peso_inicial: 180,
+    },
+  ]);
+  assert.equal(result.ok, true);
+  assert.ok(
+    rt
+      .call("getOpcionesAnimal", [])
+      .propietarios.includes("Ganadería La Colina"),
+  );
+  assert.ok(
+    rt.data.catalogos.some(
+      (item) =>
+        item.categoria === "propietario" &&
+        item.valor === "Ganadería La Colina",
+    ),
+  );
+});
 test("renaming an animal carries its measurement relationships atomically", () => {
   const rt = createRuntime(demoData());
   const before = structuredClone(rt.data);

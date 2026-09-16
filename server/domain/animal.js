@@ -111,6 +111,19 @@ function getAnimal(codigo) {
   };
 }
 
+function _registrarPropietarioCatalogo(valor) {
+  var propietario = String(valor || '').trim();
+  if (!propietario) return '';
+  var clave = propietario.toLocaleLowerCase();
+  var existe = getCatalogo('propietario').some(function(actual) {
+    return String(actual || '').trim().toLocaleLowerCase() === clave;
+  });
+  if (!existe) {
+    insert('catalogos', { categoria: 'propietario', valor: propietario });
+  }
+  return propietario;
+}
+
 // Guarda o actualiza un animal. payload.codigo es obligatorio y sirve como PK.
 // Para actualizaciones parciales (palpación, descarte, etc.) solo se requiere codigo.
 function saveAnimal(payload) {
@@ -150,6 +163,9 @@ function saveAnimal(payload) {
     }
 
     // Actualización parcial: solo fusiona los campos enviados
+    if (payload.propietario !== undefined) {
+      payload.propietario = _registrarPropietarioCatalogo(payload.propietario);
+    }
     var actualizado = update('animales', 'codigo', codigo, payload);
     var dias = calcularDiasFinca(actualizado.fecha_ingreso, null);
     update('animales', 'codigo', codigo, { dias_en_finca: dias });
@@ -219,6 +235,7 @@ function saveAnimal(payload) {
     }
 
     payload.codigo        = codigo;
+    payload.propietario   = _registrarPropietarioCatalogo(payload.propietario);
     payload.estado        = payload.estado || 'ACTIVO';
     payload.dias_en_finca = calcularDiasFinca(payload.fecha_ingreso, null);
     insert('animales', payload);
@@ -457,13 +474,24 @@ function cambiarCodigo(codigoActual, nuevoCodigo) {
 
 // Opciones para dropdowns del formulario.
 function getOpcionesAnimal() {
+  var propietariosVistos = {};
+  var propietarios = getCatalogo('propietario')
+    .concat(getUniqueValues('animales', 'propietario'))
+    .map(function(valor) { return String(valor || '').trim(); })
+    .filter(function(valor) {
+      var clave = valor.toLocaleLowerCase();
+      if (!valor || propietariosVistos[clave]) return false;
+      propietariosVistos[clave] = true;
+      return true;
+    })
+    .sort(function(a, b) { return a.localeCompare(b); });
   return {
     predios:      getUniqueValues('animales', 'predio'),
     lotes:        getUniqueValues('animales', 'lote'),
     tipos:        ['TERNERA', 'TERNERA LEVANTE', 'NOVILLA VIENTRE', 'VACA', 'TERNERO', 'TERNERO LEVANTE', 'TORO'],
     estados:      ['ACTIVO', 'VENDIDO', 'MUERTO'],
     causasMuerte: CAUSAS_MUERTE,
-    propietarios: getCatalogo('propietario'),
+    propietarios: propietarios,
     tiposIngreso: ['COMPRA', 'NACIMIENTO'],
     sexos:        ['HEMBRA', 'MACHO'],
     madres:       getHembrasReproductoras()   // candidatas para el selector de nacimiento
