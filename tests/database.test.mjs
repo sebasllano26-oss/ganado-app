@@ -13,7 +13,7 @@ test("database: migration, tenant isolation, subscription enforcement, transacti
   const db = new PGlite();
   try {
     await db.exec(
-      `create schema auth;create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb not null default '{}'::jsonb);create role anon;create role authenticated;grant usage on schema public,auth to authenticated;create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant execute on function auth.uid() to authenticated;insert into auth.users(id,email) values('${userA}','a@example.com'),('${userB}','b@example.com'),('${userE}','e@example.com');`,
+      `create schema auth;create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz,raw_user_meta_data jsonb not null default '{}'::jsonb);create role anon;create role authenticated;grant usage on schema public,auth to authenticated;create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant execute on function auth.uid() to authenticated;insert into auth.users(id,email) values('${userA}','a@example.com'),('${userB}','b@example.com'),('${userE}','e@example.com');`,
     );
     const migrationsDir = fileURLToPath(
       new URL("../supabase/migrations/", import.meta.url),
@@ -236,6 +236,20 @@ test("database: migration, tenant isolation, subscription enforcement, transacti
         }),
       ],
     );
+    assert.equal(
+      (
+        await db.query(
+          "select count(*)::int total from public.perfiles where user_id=$1",
+          [userC],
+        )
+      ).rows[0].total,
+      0,
+      "an unconfirmed email must not provision an account",
+    );
+    await db.query(
+      "update auth.users set email_confirmed_at=now() where id=$1",
+      [userC],
+    );
     const provisioned = (
       await db.query(
         `select p.correo,p.nombre_mostrar,p.ganaderia_solicitada,o.id as org_id,m.rol,s.estado
@@ -257,7 +271,7 @@ test("database: migration, tenant isolation, subscription enforcement, transacti
     });
 
     await db.query(
-      "insert into auth.users(id,email,raw_user_meta_data) values($1,$2,$3)",
+      "insert into auth.users(id,email,email_confirmed_at,raw_user_meta_data) values($1,$2,now(),$3)",
       [userD, null, JSON.stringify({ farm_name: "Ganadería sin correo" })],
     );
     assert.equal(

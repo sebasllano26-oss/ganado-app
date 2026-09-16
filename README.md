@@ -6,7 +6,7 @@ Plataforma ganadera multiusuario para ofrecer por suscripción. Es independiente
 
 - Portada comercial y demostración pública de consulta con 28 animales ficticios.
 - Registro, confirmación por correo, inicio de sesión y recuperación con Supabase Auth.
-- Perfil, ganadería, membresía de propietario y prueba de 14 días creados por la base de datos al registrar una cuenta.
+- Perfil, ganadería, membresía de propietario y prueba de 14 días creados por la base de datos después de confirmar el correo.
 - Roles `owner`, `editor` y `viewer`, con cambio entre las ganaderías autorizadas.
 - Inventario, pesajes, reproducción, sanidad, ventas, gastos, tareas, predios y lluvias.
 - Archivos en un bucket privado y enlaces firmados por una hora.
@@ -35,15 +35,18 @@ Abre `http://127.0.0.1:5173`. La demostración funciona sin credenciales en `htt
 
 El repositorio apunta a `pemwlgwqysaufwsrsjdq`. Las migraciones de `supabase/migrations/` son la fuente versionada del esquema y se ejecutan en orden.
 
-Las tres migraciones, incluida `20260916021123_account_provisioning.sql`, están registradas en ese proyecto.
+Las cuatro migraciones, incluida `20260916124423_provision_after_email_confirmation.sql`, están registradas en ese proyecto.
 
 El flujo de alta es el siguiente:
 
 1. El navegador envía a Supabase Auth el correo, la contraseña, el nombre de la persona y el nombre solicitado para la ganadería.
-2. Un trigger `after insert` crea `perfiles`, `organizaciones`, la membresía `owner` y la suscripción `trialing` en una sola transacción.
-3. Si falla ese bloque, el usuario de Auth se conserva y el error queda en `ganax_private.errores_alta`.
-4. En el siguiente ingreso, `crear_ganaderia` repara de forma idempotente las filas faltantes y devuelve la organización existente ante llamadas repetidas.
-5. La aplicación muestra el nombre desde `perfiles` y `organizaciones`; los metadatos de Auth solo transportan los datos iniciales.
+2. Supabase crea el usuario pendiente, pero todavía no crea datos de la ganadería ni permite una sesión válida.
+3. Al confirmar el correo, el trigger `provision_account_after_confirmation` crea `perfiles`, `organizaciones`, la membresía `owner` y la suscripción `trialing` en una sola transacción.
+4. Si falla ese bloque, el usuario de Auth se conserva y el error queda en `ganax_private.errores_alta`.
+5. En el siguiente ingreso, `crear_ganaderia` repara de forma idempotente las filas faltantes y devuelve la organización existente ante llamadas repetidas.
+6. La aplicación vuelve a comprobar con Auth que el usuario existe y que su correo está confirmado antes de abrir el espacio de trabajo.
+
+Para aceptar registros del público hay que configurar SMTP propio. El SMTP básico de Supabase solo entrega a direcciones autorizadas del equipo y tiene límites estrictos; no se debe usar para producción.
 
 Los clientes tienen lectura con RLS. Las escrituras pasan por funciones `security definer` con `search_path` vacío. El perfil se actualiza mediante `actualizar_perfil`, y los miembros existentes se agregan mediante `invitar_miembro`; no hay permisos directos de `insert`, `update` o `delete` para `authenticated`.
 
@@ -54,7 +57,7 @@ Los clientes tienen lectura con RLS. Las escrituras pasan por funciones `securit
 3. Añade `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_URL` y `SUPABASE_PUBLISHABLE_KEY`.
 4. Despliega. `api/rpc.mjs` se publica como función de Vercel.
 5. Después de conocer el dominio final, configura en Supabase la URL del sitio y las redirecciones para ese dominio y `http://127.0.0.1:5173/**`.
-6. Configura SMTP y prueba registro, confirmación, recuperación e ingreso antes de abrir las ventas.
+6. Configura SMTP propio y prueba registro, confirmación, recuperación e ingreso antes de abrir las ventas.
 
 No uses `vite preview` como servidor de producción: solo entrega archivos estáticos y no incluye la API.
 
@@ -84,4 +87,4 @@ Las pruebas cubren el alta desde `auth.users`, la recuperación concurrente, el 
 - Las invitaciones agregan usuarios que ya crearon una cuenta. No se envían correos de invitación.
 - El MCP de Supabase está autenticado en Codex para `pemwlgwqysaufwsrsjdq`.
 
-Referencias: [Supabase Auth](https://supabase.com/docs/guides/auth), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [MCP Supabase](https://supabase.com/docs/guides/ai-tools/mcp).
+Referencias: [Supabase Auth](https://supabase.com/docs/guides/auth), [SMTP de Supabase](https://supabase.com/docs/guides/auth/auth-smtp), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [MCP Supabase](https://supabase.com/docs/guides/ai-tools/mcp).

@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { hasConfirmedEmail } from "./auth-session.js";
 import "@fontsource/geist/latin-400.css";
 import "@fontsource/geist/latin-500.css";
 import "@fontsource/geist/latin-600.css";
@@ -124,6 +125,8 @@ function authErrorMessage(error) {
   const message = error?.message || "No pudimos completar la solicitud.";
   if (/email rate limit/i.test(message))
     return "Espera un momento antes de solicitar otro correo.";
+  if (/email address not authorized/i.test(message))
+    return "El servicio de correo todavía no está habilitado para este destinatario.";
   if (/invalid login credentials/i.test(message))
     return "El correo o la contraseña no coinciden.";
   if (/user already registered/i.test(message))
@@ -249,6 +252,12 @@ function authScreen(mode = "login", context = {}) {
           password: values.password,
         });
       if (result.error) throw result.error;
+      if (signup) {
+        if (result.data.session) await sb.auth.signOut({ scope: "local" });
+        localStorage.setItem(pendingEmailKey, values.email);
+        authScreen("confirmar", { email: values.email });
+        return;
+      }
       if (recover) {
         alertText(
           notice,
@@ -266,10 +275,9 @@ function authScreen(mode = "login", context = {}) {
         location.hash = "#login";
         return;
       }
-      if (signup && !result.data.session) {
-        localStorage.setItem(pendingEmailKey, values.email);
-        authScreen("confirmar", { email: values.email });
-        return;
+      if (result.data.session && !hasConfirmedEmail(result.data.session)) {
+        await sb.auth.signOut({ scope: "local" });
+        throw Error("Confirma tu correo antes de ingresar.");
       }
       state.session = result.data.session;
       location.hash = "#/";
@@ -304,6 +312,33 @@ async function bootApp() {
     if (!state.session) {
       state.booting = false;
       authScreen();
+      return;
+    }
+    const { data: verifiedUser, error: userError } = await sb.auth.getUser();
+    if (userError || !verifiedUser.user) {
+      await sb.auth.signOut({ scope: "local" });
+      state.session = null;
+      state.booting = false;
+      authScreen();
+      alertText(
+        document.getElementById("auth-notice"),
+        "La sesión anterior terminó. Ingresa de nuevo para continuar.",
+        true,
+      );
+      return;
+    }
+    state.session = { ...state.session, user: verifiedUser.user };
+    if (!hasConfirmedEmail(state.session)) {
+      const pendingEmail = state.session.user?.email || "";
+      await sb.auth.signOut({ scope: "local" });
+      state.session = null;
+      state.booting = false;
+      authScreen("reenviar-confirmacion", { email: pendingEmail });
+      alertText(
+        document.getElementById("auth-notice"),
+        "Confirma tu correo antes de ingresar.",
+        true,
+      );
       return;
     }
     try {
@@ -673,7 +708,11 @@ if (sb)
       state.started = false;
       authScreen("nueva-clave");
     }
-    if (event === "SIGNED_IN" && (authCallbackPending || hasAuthCallback())) {
+    if (
+      event === "SIGNED_IN" &&
+      hasConfirmedEmail(session) &&
+      (authCallbackPending || hasAuthCallback())
+    ) {
       authCallbackPending = false;
       localStorage.removeItem(pendingEmailKey);
       history.replaceState(null, "", location.pathname + "#/");
