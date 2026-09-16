@@ -1,0 +1,9 @@
+node_modules
+dist
+.local
+package-lock.json
+src/legacy.js
+src/legacy.css
+server/domain
+tests/legacy
+supabase/migrations

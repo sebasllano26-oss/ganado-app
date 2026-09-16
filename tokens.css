@@ -1,0 +1,51 @@
+/* Hallmark · macrostructure: workspace + split cover · tone: utilitarian · anchor hue: forest green */
+/* Hallmark · pre-emit critique: P4 H4 E4 S4 R4 V4 */
+:root {
+  --color-paper: oklch(97.5% 0.009 88);
+  --color-surface: oklch(99.5% 0.004 85);
+  --color-ink: oklch(25% 0.025 155);
+  --color-ink-2: oklch(46% 0.02 150);
+  --color-rule: oklch(87% 0.014 100);
+  --color-accent: oklch(39% 0.065 155);
+  --color-on-accent: oklch(99% 0.003 90);
+  --color-soft: oklch(94% 0.023 145);
+  --color-focus: oklch(46% 0.11 160);
+  --color-error: oklch(45% 0.16 25);
+  --color-error-soft: oklch(96% 0.023 30);
+  --color-art: oklch(90% 0.025 100);
+  --color-sun: oklch(85% 0.11 82);
+  --color-hill-back: oklch(69% 0.06 132);
+  --color-hill-front: oklch(51% 0.063 155);
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Geist", system-ui, sans-serif;
+  --font-num: var(--font-body);
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+  --text-sm: 0.875rem;
+  --text-body: 1rem;
+  --text-title: clamp(1.8rem, 3vw, 2.6rem);
+  --text-display: clamp(3rem, 6.8vw, 6.4rem);
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --rule-thin: 1px;
+  --dur-short: 140ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+}
+:root[data-theme="dark"] {
+  --color-paper: oklch(19% 0.013 150);
+  --color-surface: oklch(23% 0.014 150);
+  --color-ink: oklch(95% 0.012 90);
+  --color-ink-2: oklch(75% 0.015 120);
+  --color-rule: oklch(35% 0.02 145);
+  --color-accent: oklch(77% 0.1 148);
+  --color-on-accent: oklch(20% 0.03 150);
+  --color-soft: oklch(31% 0.03 148);
+  --color-focus: oklch(78% 0.1 150);
+}

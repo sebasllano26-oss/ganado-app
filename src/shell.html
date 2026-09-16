@@ -1,0 +1,138 @@
+<!-- Overlay del sidebar en mobile -->
+<div id="sidebar-overlay" onclick="App.closeSidebar()"></div>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<div
+  id="sidebar"
+  class="fixed inset-y-0 left-0 flex flex-col"
+  style="z-index: 200"
+>
+  <div class="sidebar-brand">
+    <span class="brand-mark" aria-hidden="true">G</span>
+    <span class="bw">Gana<span class="x">X</span></span>
+  </div>
+
+  <nav class="flex-1 py-2 overflow-y-auto">
+    <div class="nav-section">Principal</div>
+    <a href="#/" class="nav-link" data-view="dashboard"
+      ><i class="ph ph-squares-four"></i> Resumen</a
+    >
+    <a href="#/animales" class="nav-link" data-view="animales"
+      ><i class="ph ph-cow"></i> Animales</a
+    >
+    <a href="#/nacimientos" class="nav-link" data-view="nacimientos"
+      ><i class="ph ph-baby"></i> Nacimientos</a
+    >
+    <a href="#/situacion" class="nav-link" data-view="situacion"
+      ><i class="ph ph-stethoscope"></i> Situación</a
+    >
+    <a href="#/planeacion" class="nav-link" data-view="planeacion"
+      ><i class="ph ph-chart-line-up"></i> Planeación</a
+    >
+
+    <div class="nav-section">Operación</div>
+    <!-- Ventas y Finanzas viven ahora como sub-pestañas dentro de Para Venta,
+           y Registro dentro de Animales. La barra lateral queda con las secciones
+           de verdad, no con cada acción. -->
+    <a href="#/salida" class="nav-link" data-view="salida"
+      ><i class="ph ph-target"></i> Para Venta</a
+    >
+    <a href="#/sanidad" class="nav-link" data-view="sanidad"
+      ><i class="ph ph-syringe"></i> Sanidad</a
+    >
+    <a href="#/tareas" class="nav-link" data-view="tareas"
+      ><i class="ph ph-calendar-check"></i> Tareas</a
+    >
+
+    <div class="nav-section">Mi cuenta</div>
+    <a href="#/cuenta" class="nav-link" data-view="cuenta"
+      ><i class="ph ph-user-circle"></i> Cuenta y plan</a
+    >
+  </nav>
+
+  <button
+    onclick="GanaXLogin.salir()"
+    class="sidebar-action"
+    style="
+      margin: 2px 10px 10px;
+      border-top: 1px solid var(--border);
+      border-radius: 0 0 var(--r-md) var(--r-md);
+      padding-top: 14px;
+    "
+  >
+    <i class="ph ph-sign-out"></i> Cerrar sesión
+  </button>
+  <div class="sidebar-foot">GanaX Cloud · <span id="footer-fecha"></span></div>
+</div>
+
+<!-- ══════════ CONTENIDO PRINCIPAL ══════════ -->
+<div class="ml-64 min-h-screen flex flex-col">
+  <header class="px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+    <div class="flex items-center gap-2">
+      <button
+        onclick="App.toggleSidebar()"
+        class="flex md:hidden items-center justify-center w-10 h-10 rounded-lg text-xl leading-none"
+        aria-label="Menú"
+        style="color: var(--ink-2)"
+      >
+        <i class="ph ph-list"></i>
+      </button>
+      <div id="topbar-title" class="text-lg font-semibold">Dashboard</div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div id="topbar-filters" class="flex gap-2"></div>
+      <button
+        id="theme-toggle"
+        onclick="GanaXTheme.toggle()"
+        title="Cambiar tema (claro / oscuro)"
+        class="topbar-icon-btn"
+      >
+        <i class="ph ph-moon" id="theme-ic"></i>
+      </button>
+      <button
+        id="btn-nuevo-animal"
+        onclick="App.abrirModalAnimal()"
+        class="btn-primary text-sm px-4 py-2"
+      >
+        <i class="ph ph-plus"></i> Nuevo animal
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading global -->
+  <div
+    id="loading-global"
+    class="hidden fixed inset-0 backdrop-blur-sm flex items-center justify-center"
+    style="z-index: 100"
+  >
+    <div class="flex flex-col items-center gap-3">
+      <div
+        class="w-10 h-10 border-4 border-green-700 border-t-transparent rounded-full animate-spin"
+      ></div>
+      <span class="text-sm" id="loading-msg">Cargando…</span>
+    </div>
+  </div>
+
+  <!-- Área de vistas -->
+  <div id="workspace-banner"></div>
+  <main id="app-main" class="flex-1 p-6"></main>
+</div>
+
+<!-- ══════════ MODALES ══════════ -->
+<div
+  id="modal-overlay"
+  class="hidden fixed inset-0 flex items-center justify-center p-4"
+  style="z-index: 300"
+  onclick="if (event.target === this) App.cerrarModal();"
+>
+  <div id="modal-box" class="w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- ══════════ TOASTS ══════════ -->
+<div
+  id="toast-container"
+  class="fixed bottom-6 right-6 flex flex-col gap-2"
+  style="z-index: 500"
+></div>
