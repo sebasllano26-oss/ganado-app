@@ -36,6 +36,8 @@ Los iconos son vectores de Phosphor. La aplicación no usa emoji como icono estr
 
 La demostración está identificada en todo momento. No se presentan métricas ficticias como resultados comerciales. No hay música ni animaciones decorativas. Se respeta la preferencia de movimiento reducido.
 
+El Asistente GanaX usa la misma arquitectura visual del espacio de trabajo: contexto a la izquierda, conversación como superficie principal, preguntas sugeridas y un compositor con objetivos táctiles de al menos 44 px. Las respuestas se presentan como texto seguro y la interfaz distingue claramente los mensajes del usuario, la guía y los errores.
+
 ## Revisión
 
 La portada y el resumen se verifican a 320, 375, 414 y 768 píxeles mediante Playwright. Las pantallas operativas conservan parte de la estructura del sistema original; no se afirma conformidad integral de las 69 reglas visuales sobre ese código heredado.

@@ -135,3 +135,34 @@ test("workspace remains inside small screens", async ({ page }) => {
     .toBeLessThanOrEqual(1);
   await page.screenshot({ path: ".local/mobile.png", fullPage: true });
 });
+
+test("virtual assistant guides users inside the demo", async ({ page }) => {
+  await page.goto("/?demo=1#/asistente");
+  await expect(
+    page.getByRole("heading", { name: "Asistente GanaX" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "¿Cómo registro un animal?" }).click();
+  await expect(page.locator("#assistant-messages")).toContainText(
+    "Nuevo animal",
+  );
+  await expect(page.locator("#assistant-status")).toContainText(
+    "Guía disponible",
+  );
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.screenshot({ path: ".local/assistant.png", fullPage: true });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Asistente GanaX" }),
+  ).toBeVisible();
+  await page.evaluate(() => scrollTo(0, 0));
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: ".local/assistant-mobile.png",
+    fullPage: true,
+  });
+});

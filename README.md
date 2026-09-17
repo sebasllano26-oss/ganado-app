@@ -7,6 +7,7 @@ Plataforma ganadera multiusuario conectada a Supabase. Es independiente de la ve
 - Portada comercial y demostración pública de consulta con 28 animales ficticios.
 - Registro inmediato, inicio de sesión y recuperación con Supabase Auth.
 - Perfil, ganadería y membresía de propietario creados por la base de datos al registrar la cuenta.
+- Asistente GanaX integrado para orientar registros, pesajes, sanidad, tareas y consultas del hato.
 - Roles `owner`, `editor` y `viewer`, con cambio entre las ganaderías autorizadas.
 - Inventario, pesajes, reproducción, sanidad, ventas, gastos, tareas, predios y lluvias.
 - Archivos en un bucket privado y enlaces firmados por una hora.
@@ -64,6 +65,10 @@ No uses `vite preview` como servidor de producción: solo entrega archivos está
 ## Acceso y soporte
 
 Durante esta etapa no hay planes, cobros ni límites por suscripción. Los propietarios y editores pueden registrar información; los usuarios de consulta conservan acceso de solo lectura.
+
+## Asistente GanaX
+
+La sección **Asistente** funciona siempre con una guía integrada de los procesos principales. En una cuenta autenticada utiliza únicamente un resumen autorizado de la ganadería activa. Si se configura `GEMINI_API_KEY` en el servidor, mejora las respuestas con Gemini; la clave nunca se envía al navegador. La demostración pública conserva el modo guiado para evitar consumo anónimo del proveedor.
 
 Consulta [OPERACION.md](docs/OPERACION.md) para administrar planes, equipos, errores de alta y respaldos.
 

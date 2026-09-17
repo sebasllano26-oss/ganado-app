@@ -3,7 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/rpc.mjs": { "includeFiles": "server/**", "maxDuration": 30 }
+    "api/rpc.mjs": { "includeFiles": "server/**", "maxDuration": 30 },
+    "api/chat.mjs": { "includeFiles": "server/**", "maxDuration": 30 }
   },
   "headers": [
     {

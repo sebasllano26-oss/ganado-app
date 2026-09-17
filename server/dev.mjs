@@ -3,14 +3,18 @@ import { createServer } from "vite";
 import { existsSync } from "node:fs";
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 else if (existsSync(".env")) process.loadEnvFile(".env");
-const { default: handler } = await import("../api/rpc.mjs");
+const [{ default: rpcHandler }, { default: chatHandler }] = await Promise.all([
+  import("../api/rpc.mjs"),
+  import("../api/chat.mjs"),
+]);
 const vite = await createServer({
   server: { middlewareMode: true },
   appType: "spa",
 });
 http
   .createServer(async (req, res) => {
-    if (req.url?.split("?")[0] === "/api/rpc") {
+    const apiPath = req.url?.split("?")[0];
+    if (apiPath === "/api/rpc" || apiPath === "/api/chat") {
       res.status = (code) => {
         res.statusCode = code;
         return res;
@@ -33,7 +37,7 @@ http
         res.status(400).json({ error: "Solicitud inválida" });
         return;
       }
-      await handler(req, res);
+      await (apiPath === "/api/chat" ? chatHandler : rpcHandler)(req, res);
     } else vite.middlewares(req, res);
   })
   .listen(5173, "127.0.0.1", () =>

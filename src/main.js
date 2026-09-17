@@ -9,6 +9,7 @@ import "./legacy.css";
 import "../tokens.css";
 import "./style.css";
 import "./design-system.css";
+import "./assistant.css";
 import shell from "./shell.html?raw";
 
 let Chart, App;
@@ -31,6 +32,7 @@ const state = {
   booting: false,
   pending: 0,
 };
+const assistantState = { messages: [], sending: false };
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -434,10 +436,14 @@ async function bootApp() {
   App.rutear = () => {
     if (!state.started) return;
     if (location.hash === "#/cuenta") {
-      Object.values(App.estado.charts).forEach((c) => c.destroy());
-      App.estado.charts = {};
       accountView();
-    } else previousRoute();
+    } else if (location.hash === "#/asistente") {
+      assistantView();
+    } else {
+      const newAnimalButton = document.getElementById("btn-nuevo-animal");
+      if (newAnimalButton) newAnimalButton.hidden = false;
+      previousRoute();
+    }
   };
   App.vistaDashboard = dashboard;
   const closeModal = App.cerrarModal;
@@ -585,9 +591,209 @@ function dashboard() {
     })(summary.evolucion);
   });
 }
-async function accountView() {
+function prepareSpecialView(view, title) {
   App.closeSidebar();
-  document.getElementById("topbar-title").textContent = "Mi cuenta";
+  Object.values(App.estado.charts).forEach((chart) => chart.destroy());
+  App.estado.charts = {};
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    link.classList.toggle("active", link.dataset.view === view);
+  });
+  document.getElementById("topbar-title").textContent = title;
+  document
+    .getElementById("btn-nuevo-animal")
+    ?.classList.toggle("solo-en-animales", true);
+  const newAnimalButton = document.getElementById("btn-nuevo-animal");
+  if (newAnimalButton) newAnimalButton.hidden = true;
+}
+
+function renderAssistantMessages() {
+  const list = document.getElementById("assistant-messages");
+  if (!list) return;
+  list.replaceChildren();
+  assistantState.messages.forEach((message) => {
+    const item = document.createElement("article");
+    item.className =
+      "assistant-message " +
+      (message.role === "user" ? "is-user" : "is-assistant") +
+      (message.error ? " is-error" : "");
+
+    const avatar = document.createElement("span");
+    avatar.className = "assistant-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    avatar.innerHTML = icon(message.role === "user" ? "user" : "sparkle");
+
+    const content = document.createElement("div");
+    content.className = "assistant-message-content";
+    const label = document.createElement("strong");
+    label.textContent = message.role === "user" ? "Tú" : "Asistente GanaX";
+    content.append(label);
+    String(message.content || "")
+      .replaceAll("**", "")
+      .split(/\n{2,}/)
+      .forEach((text) => {
+        const paragraph = document.createElement("p");
+        paragraph.textContent = text;
+        content.append(paragraph);
+      });
+    item.append(avatar, content);
+    list.append(item);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+function setAssistantSending(sending) {
+  assistantState.sending = sending;
+  const form = document.getElementById("assistant-form");
+  const button = form?.querySelector("button[type=submit]");
+  const input = document.getElementById("assistant-input");
+  if (button) {
+    button.disabled = sending;
+    button.innerHTML = sending
+      ? `${icon("circle-notch")} Consultando…`
+      : `${icon("paper-plane-tilt")} Enviar`;
+  }
+  if (input) input.disabled = sending;
+}
+
+async function sendAssistantMessage(text) {
+  const question = String(text || "").trim();
+  if (!question || assistantState.sending) return;
+  assistantState.messages.push({ role: "user", content: question });
+  renderAssistantMessages();
+  setAssistantSending(true);
+  const status = document.getElementById("assistant-status");
+  if (status) status.textContent = "Consultando…";
+
+  try {
+    if (!state.demo && sb) {
+      const { data } = await sb.auth.getSession();
+      state.session = data.session;
+      if (!state.session) throw Error("Inicia sesión para usar el asistente.");
+    }
+    const conversation = assistantState.messages
+      .filter((message) => !message.error)
+      .slice(-15)
+      .map(({ role, content }) => ({ role, content }));
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(state.session
+          ? { Authorization: "Bearer " + state.session.access_token }
+          : {}),
+      },
+      body: JSON.stringify({
+        messages: conversation,
+        org: state.org,
+        demo: state.demo,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const body = await response.json();
+    if (!response.ok) throw Error(body.error || "No pude responder.");
+    assistantState.messages.push({ role: "model", content: body.reply });
+    if (status)
+      status.textContent =
+        body.mode === "ai" ? "Asistencia con IA" : "Guía disponible";
+  } catch (error) {
+    assistantState.messages.push({
+      role: "model",
+      content:
+        error.name === "TimeoutError"
+          ? "La consulta tardó demasiado. Intenta nuevamente."
+          : error.message,
+      error: true,
+    });
+    if (status) status.textContent = "No disponible";
+  } finally {
+    setAssistantSending(false);
+    renderAssistantMessages();
+    document.getElementById("assistant-input")?.focus({ preventScroll: true });
+  }
+}
+
+function assistantView() {
+  prepareSpecialView("asistente", "Asistente GanaX");
+  if (!assistantState.messages.length) {
+    assistantState.messages.push({
+      role: "model",
+      content:
+        "Hola. Puedo guiarte paso a paso para registrar animales, pesajes, sanidad, tareas, ventas y otros procesos de GanaX. ¿Qué necesitas hacer?",
+    });
+  }
+  const suggestions = [
+    "¿Cómo registro un animal?",
+    "¿Cómo agrego un nuevo pesaje?",
+    "¿Dónde programo una tarea?",
+    "Resume mi hato",
+  ];
+  App.renderMain(`
+    <section class="assistant-page">
+      <div class="assistant-heading">
+        <div>
+          <p class="view-date">Orientación dentro de la aplicación</p>
+          <h1>Asistente GanaX</h1>
+          <p>Consulta cómo usar cada módulo y entiende el resumen de tu ganadería.</p>
+        </div>
+        <span class="assistant-status" id="assistant-status">Guía disponible</span>
+      </div>
+      <div class="assistant-layout">
+        <aside class="assistant-context surface">
+          <span class="assistant-context-icon">${icon("sparkle")}</span>
+          <h2>¿En qué puede ayudarte?</h2>
+          <ul>
+            <li>${icon("check-circle")} Explicar formularios y campos</li>
+            <li>${icon("check-circle")} Orientar sobre animales y pesajes</li>
+            <li>${icon("check-circle")} Ubicar tareas, sanidad y ventas</li>
+            <li>${icon("check-circle")} Resumir datos autorizados del hato</li>
+          </ul>
+          <p class="assistant-privacy">${icon("shield-check")} Solo usa el resumen necesario de la ganadería activa. No reemplaza el criterio veterinario o contable.</p>
+          <button type="button" class="button secondary wide" id="assistant-reset">${icon("arrow-counter-clockwise")} Nueva conversación</button>
+        </aside>
+        <section class="assistant-chat surface" aria-label="Conversación con el asistente">
+          <div class="assistant-messages" id="assistant-messages" role="log" aria-live="polite"></div>
+          <div class="assistant-suggestions" aria-label="Preguntas sugeridas">
+            ${suggestions.map((question) => `<button type="button" data-assistant-question="${esc(question)}">${esc(question)}</button>`).join("")}
+          </div>
+          <form class="assistant-form" id="assistant-form">
+            <label for="assistant-input">Escribe tu consulta</label>
+            <div class="assistant-composer">
+              <textarea id="assistant-input" maxlength="2500" rows="2" required placeholder="Ej. ¿Cómo registro una vacuna para un animal?"></textarea>
+              <button class="button primary" type="submit">${icon("paper-plane-tilt")} Enviar</button>
+            </div>
+            <small>Enter para enviar · Shift + Enter para una nueva línea</small>
+          </form>
+        </section>
+      </div>
+    </section>`);
+  renderAssistantMessages();
+  document.querySelectorAll("[data-assistant-question]").forEach((button) => {
+    button.onclick = () =>
+      sendAssistantMessage(button.dataset.assistantQuestion);
+  });
+  document.getElementById("assistant-reset").onclick = () => {
+    assistantState.messages = [];
+    assistantView();
+  };
+  const form = document.getElementById("assistant-form");
+  const input = document.getElementById("assistant-input");
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    const value = input.value;
+    input.value = "";
+    sendAssistantMessage(value);
+  };
+  input.onkeydown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  };
+}
+
+async function accountView() {
+  prepareSpecialView("cuenta", "Mi cuenta");
+  App.closeSidebar();
   App.renderMain('<p class="loading-placeholder">Cargando tu cuenta…</p>');
   if (state.demo) {
     App.renderMain(
